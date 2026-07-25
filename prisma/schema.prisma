@@ -1,0 +1,161 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  OWNER
+  ADMIN
+}
+
+enum ListingStatus {
+  PENDENTE
+  APROVADO
+  REPROVADO
+  INATIVO
+}
+
+enum MediaType {
+  FOTO
+  LOGO
+  VIDEO
+}
+
+model City {
+  id            String         @id @default(cuid())
+  nome          String
+  uf            String
+  ativa         Boolean        @default(false)
+  listings      Listing[]
+  professionals Professional[]
+
+  @@unique([nome, uf])
+}
+
+model Category {
+  id            String         @id @default(cuid())
+  nome          String
+  slug          String         @unique
+  icone         String?
+  subcategories Subcategory[]
+  listings      Listing[]
+  professionals Professional[]
+}
+
+model Subcategory {
+  id            String         @id @default(cuid())
+  categoryId    String
+  category      Category       @relation(fields: [categoryId], references: [id])
+  nome          String
+  slug          String
+  listings      Listing[]
+  professionals Professional[]
+
+  @@unique([categoryId, slug])
+}
+
+model User {
+  id            String         @id @default(cuid())
+  nome          String
+  email         String         @unique
+  senhaHash     String
+  role          Role           @default(USER)
+  criadoEm      DateTime       @default(now())
+  listings      Listing[]
+  professionals Professional[]
+}
+
+model Listing {
+  id                    String        @id @default(cuid())
+  codigoPublico         String        @unique
+  ownerId               String
+  owner                 User          @relation(fields: [ownerId], references: [id])
+  cityId                String
+  city                  City          @relation(fields: [cityId], references: [id])
+  categoryId            String
+  category              Category      @relation(fields: [categoryId], references: [id])
+  subcategoryId         String?
+  subcategory           Subcategory?  @relation(fields: [subcategoryId], references: [id])
+
+  nome                  String
+  descricao             String
+  telefone              String?
+  whatsapp              String?
+  instagram             String?
+  facebook              String?
+  site                  String?
+  email                 String?
+
+  endereco              String
+  lat                   Float?
+  lng                   Float?
+
+  aceitaPix             Boolean       @default(false)
+  aceitaCartao          Boolean       @default(false)
+  entrega               Boolean       @default(false)
+  atendimentoDomiciliar Boolean       @default(false)
+
+  status                ListingStatus @default(PENDENTE)
+  motivoReprovacao      String?
+
+  horario               String?
+
+  criadoEm              DateTime      @default(now())
+  atualizadoEm          DateTime      @updatedAt
+
+  media                 Media[]
+
+  @@index([status])
+  @@index([cityId, categoryId])
+}
+
+model Professional {
+  id               String        @id @default(cuid())
+  codigoPublico    String        @unique
+  ownerId          String
+  owner            User          @relation(fields: [ownerId], references: [id])
+  cityId           String
+  city             City          @relation(fields: [cityId], references: [id])
+  categoryId       String
+  category         Category      @relation(fields: [categoryId], references: [id])
+  subcategoryId    String?
+  subcategory      Subcategory?  @relation(fields: [subcategoryId], references: [id])
+
+  nome             String
+  cpfCriptografado String        // nunca exposto em API pública (AES-256-GCM, reversível só p/ admin)
+  cpfHash          String        @unique // HMAC-SHA256 determinístico, só p/ checar CPF duplicado
+  dataNascimento   DateTime      // privado — só dono/admin
+  whatsapp         String
+  email            String?
+  instagram        String?
+  facebook         String?
+  descricao        String
+  bairroAtuacao    String?
+
+  status           ListingStatus @default(PENDENTE)
+  motivoReprovacao String?
+
+  criadoEm         DateTime      @default(now())
+  atualizadoEm     DateTime      @updatedAt
+
+  media            Media[]
+
+  @@index([status])
+  @@index([cityId, categoryId])
+}
+
+model Media {
+  id             String        @id @default(cuid())
+  listingId      String?
+  listing        Listing?      @relation(fields: [listingId], references: [id])
+  professionalId String?
+  professional   Professional? @relation(fields: [professionalId], references: [id])
+  tipo           MediaType
+  url            String
+  ordem          Int           @default(0)
+}

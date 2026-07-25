@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: buscapebas-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: buscapebas
+      POSTGRES_PASSWORD: buscapebas
+      POSTGRES_DB: buscapebas
+    ports:
+      - "5432:5432"
+    volumes:
+      - buscapebas_pgdata:/var/lib/postgresql/data
+
+volumes:
+  buscapebas_pgdata:

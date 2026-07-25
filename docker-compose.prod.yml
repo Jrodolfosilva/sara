@@ -1,0 +1,47 @@
+# Deploy em produção — roda em qualquer host com Docker instalado.
+# Uso:
+#   1. cp .env.example .env.production e preencha AUTH_SECRET, CPF_ENCRYPTION_KEY,
+#      NEXTAUTH_URL (com o domínio real) e DATABASE_URL (deixe o valor abaixo, que
+#      já aponta pro serviço "db" deste compose).
+#   2. docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build
+#   3. docker compose -f docker-compose.prod.yml exec app npx prisma migrate deploy
+#   4. docker compose -f docker-compose.prod.yml exec app npx tsx prisma/seed.ts
+#   5. docker compose -f docker-compose.prod.yml exec app npm run make-admin -- seu@email.com
+#
+# IMPORTANTE: nome de projeto fixo abaixo — nunca rodar sem ele (ou sempre usar -p
+# buscapebas-prod). Sem isso, Compose usa o nome da pasta como projeto e confunde
+# o serviço "db" daqui com o "db" do docker-compose.yml de dev (mesmo projeto,
+# mesmo nome de serviço = Compose recria/substitui o container errado).
+name: buscapebas-prod
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: buscapebas-db-prod
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: buscapebas
+      POSTGRES_PASSWORD: buscapebas
+      POSTGRES_DB: buscapebas
+    volumes:
+      - buscapebas_pgdata_prod:/var/lib/postgresql/data
+
+  app:
+    build: .
+    container_name: buscapebas-app
+    restart: unless-stopped
+    depends_on:
+      - db
+    ports:
+      - "3002:3000"
+    environment:
+      DATABASE_URL: "postgresql://buscapebas:buscapebas@db:5432/buscapebas"
+      AUTH_SECRET: ${AUTH_SECRET}
+      NEXTAUTH_URL: ${NEXTAUTH_URL}
+      CPF_ENCRYPTION_KEY: ${CPF_ENCRYPTION_KEY}
+    volumes:
+      - buscapebas_uploads:/app/public/uploads
+
+volumes:
+  buscapebas_pgdata_prod:
+  buscapebas_uploads:
