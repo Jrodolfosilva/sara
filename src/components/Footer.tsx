@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Compass } from "lucide-react";
+import Image from "next/image";
 
 export function Footer() {
   return (
@@ -7,11 +7,8 @@ export function Footer() {
       <div className="container">
         <div className="footer-grid">
           <div className="footer-brand">
-            <Link href="/" className="logo" style={{ color: "white" }}>
-              <div className="logo-icon">
-                <Compass size={20} />
-              </div>
-              BUSCA <span style={{ color: "var(--color-primary-cyan)" }}>Pebas</span>
+            <Link href="/" className="logo">
+              <Image src="/logo-footer.png" alt="Busca Pebas" width={545} height={150} className="logo-img" />
             </Link>
             <p>
               O maior guia de serviços, comércio, turismo e profissionais de Parauapebas.

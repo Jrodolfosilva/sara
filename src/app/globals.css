@@ -185,6 +185,11 @@
   vertical-align: super;
 }
 
+.logo-img {
+  width: 280px;
+  height: auto;
+}
+
 .nav-links {
   display: flex;
   align-items: center;
@@ -207,6 +212,21 @@
   display: flex;
   align-items: center;
   gap: 16px;
+}
+
+.nav-menu-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--color-primary-dark);
+  padding: 4px;
+  cursor: pointer;
+}
+
+.nav-mobile-menu {
+  display: none;
 }
 
 /* --- Hero Section --- */
@@ -751,6 +771,53 @@
 
   .nav-links {
     display: none;
+  }
+
+  .nav-actions {
+    display: none;
+  }
+
+  .nav-menu-btn {
+    display: flex;
+  }
+
+  .nav-mobile-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px 20px 20px 20px;
+    border-top: 1px solid rgba(0, 66, 106, 0.08);
+    background-color: var(--color-surface-white);
+  }
+
+  .nav-mobile-link {
+    padding: 12px 4px;
+    font-weight: 500;
+    font-size: 15px;
+    color: var(--color-text-main);
+    border-bottom: 1px solid rgba(0, 66, 106, 0.06);
+  }
+
+  .nav-mobile-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 12px;
+  }
+
+  .nav-mobile-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .logo-img {
+    width: auto;
+    max-width: 80vw;
+  }
+
+  .cards-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
   }
 
   .footer-grid {
