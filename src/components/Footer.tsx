@@ -8,7 +8,7 @@ export function Footer() {
         <div className="footer-grid">
           <div className="footer-brand">
             <Link href="/" className="logo">
-              <Image src="/logo-footer.png" alt="Busca Pebas" width={545} height={150} className="logo-img" />
+              <Image src="/logo.png" alt="Busca Pebas" width={545} height={150} className="logo-img" />
             </Link>
             <p>
               O maior guia de serviços, comércio, turismo e profissionais de Parauapebas.

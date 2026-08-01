@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import { passaGateAssinatura } from "@/lib/subscriptionGate";
 
 const publicSelect = {
   id: true,
@@ -14,6 +15,7 @@ const publicSelect = {
   facebook: true,
   descricao: true,
   bairroAtuacao: true,
+  valorHora: true,
   status: true,
   criadoEm: true,
   category: true,
@@ -29,7 +31,14 @@ export async function GET(
   const { id } = await params;
   const session = await auth();
 
-  const meta = await prisma.professional.findUnique({ where: { id }, select: { ownerId: true, status: true } });
+  const meta = await prisma.professional.findUnique({
+    where: { id },
+    select: {
+      ownerId: true,
+      status: true,
+      owner: { select: { criadoEm: true, subscriptionStatus: true } },
+    },
+  });
   if (!meta) {
     return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
   }
@@ -37,7 +46,9 @@ export async function GET(
   const isOwnerOrAdmin =
     !!session?.user && (session.user.id === meta.ownerId || session.user.role === "ADMIN");
 
-  if (meta.status !== "APROVADO" && !isOwnerOrAdmin) {
+  const visivel = meta.status === "APROVADO" && passaGateAssinatura(meta.owner);
+
+  if (!visivel && !isOwnerOrAdmin) {
     return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
   }
 
@@ -57,6 +68,7 @@ const updateSchema = z.object({
   instagram: z.string().optional(),
   facebook: z.string().optional(),
   fotoPerfilUrl: z.string().optional(),
+  valorHora: z.string().optional(),
 });
 
 export async function PATCH(
@@ -94,8 +106,6 @@ export async function PATCH(
     data: {
       ...data,
       email: data.email || undefined,
-      status: "PENDENTE",
-      motivoReprovacao: null,
       media: fotoPerfilUrl ? { create: [{ tipo: "FOTO", url: fotoPerfilUrl, ordem: 0 }] } : undefined,
     },
     select: publicSelect,

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCatalogData } from "@/lib/useCatalogData";
 import { uploadFile } from "@/lib/uploadFile";
+import { formatWhatsappBR, isWhatsappCompleto } from "@/lib/whatsappMask";
 import type { Professional } from "@/types/catalog";
 
 export function ProfissionalForm({
@@ -27,7 +28,41 @@ export function ProfissionalForm({
   const [enviando, setEnviando] = useState(false);
   const [sucesso, setSucesso] = useState(false);
 
+  const [whatsapp, setWhatsapp] = useState(formatWhatsappBR(initialData?.whatsapp ?? ""));
+  const [validandoWhatsapp, setValidandoWhatsapp] = useState(false);
+  const [whatsappErro, setWhatsappErro] = useState<string | null>(null);
+
   const categoriaSelecionada = categories.find((c) => c.id === categoryId);
+
+  function handleWhatsappChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setWhatsappErro(null);
+    setWhatsapp(formatWhatsappBR(e.target.value));
+  }
+
+  async function handleWhatsappBlur() {
+    if (!isWhatsappCompleto(whatsapp)) return;
+
+    setValidandoWhatsapp(true);
+    setWhatsappErro(null);
+    try {
+      const digits = whatsapp.replace(/\D/g, "");
+      const res = await fetch("/api/v1/whatsapp/check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ whatsapp: digits }),
+      });
+      const data = await res.json();
+      if (res.ok && !data.exists) {
+        setWhatsappErro("Esse número não parece ter WhatsApp ativo.");
+      } else if (!res.ok) {
+        setWhatsappErro(data.error ?? "Não foi possível validar o número agora.");
+      }
+    } catch {
+      setWhatsappErro("Não foi possível validar o número agora.");
+    } finally {
+      setValidandoWhatsapp(false);
+    }
+  }
 
   async function handleFotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -55,7 +90,7 @@ export function ProfissionalForm({
             nome: form.get("nome"),
             cpf: String(form.get("cpf") ?? "").replace(/\D/g, ""),
             dataNascimento: form.get("dataNascimento"),
-            whatsapp: form.get("whatsapp"),
+            whatsapp: whatsapp.replace(/\D/g, ""),
             categoryId,
             subcategoryId: subcategoryId || undefined,
             cityId,
@@ -65,10 +100,11 @@ export function ProfissionalForm({
             instagram: form.get("instagram") || undefined,
             facebook: form.get("facebook") || undefined,
             fotoPerfilUrl: fotoPerfilUrl || undefined,
+            valorHora: form.get("valorHora") || undefined,
           }
         : {
             nome: form.get("nome"),
-            whatsapp: form.get("whatsapp"),
+            whatsapp: whatsapp.replace(/\D/g, ""),
             categoryId,
             subcategoryId: subcategoryId || undefined,
             cityId,
@@ -78,6 +114,7 @@ export function ProfissionalForm({
             instagram: form.get("instagram") || undefined,
             facebook: form.get("facebook") || undefined,
             fotoPerfilUrl: fotoPerfilUrl || undefined,
+            valorHora: form.get("valorHora") || undefined,
           };
 
     const res = await fetch(
@@ -158,10 +195,19 @@ export function ProfissionalForm({
           <input
             name="whatsapp"
             required
-            placeholder="5594999999999"
-            defaultValue={initialData?.whatsapp}
+            value={whatsapp}
+            onChange={handleWhatsappChange}
+            onBlur={handleWhatsappBlur}
+            placeholder="+55 (94) 99999-9999"
+            inputMode="numeric"
             className="input"
           />
+          {validandoWhatsapp && (
+            <p className="mt-1 text-xs text-[var(--color-text-muted)]">Validando número...</p>
+          )}
+          {whatsappErro && (
+            <p className="mt-1 text-xs text-[var(--color-accent-coral)]">{whatsappErro}</p>
+          )}
         </Field>
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -222,6 +268,17 @@ export function ProfissionalForm({
         <Field label="Bairro de atuação">
           <input name="bairroAtuacao" defaultValue={initialData?.bairroAtuacao ?? undefined} className="input" />
         </Field>
+
+        {categoriaSelecionada?.slug === "servicos" && (
+          <Field label="Valor por hora / custo médio">
+            <input
+              name="valorHora"
+              placeholder="Ex: R$ 50/hora ou a partir de R$ 100"
+              defaultValue={initialData?.valorHora ?? undefined}
+              className="input"
+            />
+          </Field>
+        )}
 
         <Field label="Descrição / especialidade" required>
           <textarea

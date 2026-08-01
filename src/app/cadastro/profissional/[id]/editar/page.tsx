@@ -15,6 +15,7 @@ const editSelect = {
   facebook: true,
   descricao: true,
   bairroAtuacao: true,
+  valorHora: true,
   status: true,
   criadoEm: true,
   category: { include: { subcategories: true } },

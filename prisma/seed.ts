@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { slugify } from "../src/lib/text";
 
 const prisma = new PrismaClient();
 
@@ -43,34 +44,30 @@ const categorias = [
     slug: "industria",
     subcategorias: ["Prestadores", "Metalurgia", "Construção"],
   },
+  {
+    nome: "Outros",
+    slug: "outros",
+    subcategorias: ["Outros"],
+  },
 ];
-
-function slugify(s: string) {
-  return s
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-}
 
 async function main() {
   await prisma.city.upsert({
     where: { nome_uf: { nome: "Parauapebas", uf: "PA" } },
-    update: { ativa: true },
-    create: { nome: "Parauapebas", uf: "PA", ativa: true },
+    update: { ativa: true, slug: slugify("Parauapebas") },
+    create: { nome: "Parauapebas", uf: "PA", ativa: true, slug: slugify("Parauapebas") },
   });
 
   await prisma.city.upsert({
     where: { nome_uf: { nome: "Canaã dos Carajás", uf: "PA" } },
-    update: {},
-    create: { nome: "Canaã dos Carajás", uf: "PA", ativa: false },
+    update: { slug: slugify("Canaã dos Carajás") },
+    create: { nome: "Canaã dos Carajás", uf: "PA", ativa: false, slug: slugify("Canaã dos Carajás") },
   });
 
   await prisma.city.upsert({
     where: { nome_uf: { nome: "Marabá", uf: "PA" } },
-    update: {},
-    create: { nome: "Marabá", uf: "PA", ativa: false },
+    update: { slug: slugify("Marabá") },
+    create: { nome: "Marabá", uf: "PA", ativa: false, slug: slugify("Marabá") },
   });
 
   for (const cat of categorias) {

@@ -3,25 +3,37 @@ import { prisma } from "@/lib/prisma";
 import { SearchBar } from "@/components/SearchBar";
 import { ResultCard } from "@/components/ResultCard";
 import { CategoryIcon } from "@/components/CategoryIcon";
+import { gateAssinaturaOwner } from "@/lib/subscriptionGate";
 
 export const dynamic = "force-dynamic";
+
+const includeCompleto = {
+  category: { include: { subcategories: true } },
+  subcategory: true,
+  city: true,
+  media: { orderBy: { ordem: "asc" as const } },
+};
 
 export default async function Home() {
   const categories = await prisma.category.findMany({ orderBy: { nome: "asc" } });
 
-  const rows = await prisma.professional.findMany({
-    where: { status: "APROVADO" },
-    orderBy: { criadoEm: "desc" },
-    take: 6,
-    include: {
-      category: { include: { subcategories: true } },
-      subcategory: true,
-      city: true,
-      media: { orderBy: { ordem: "asc" } },
-    },
-  });
+  const gateOwner = gateAssinaturaOwner();
+  const where = { status: "APROVADO" as const, ...(gateOwner && { owner: gateOwner }) };
 
-  const professionals = rows.map((p) => ({ ...p, criadoEm: p.criadoEm.toISOString() }));
+  const [listingRows, professionalRows] = await Promise.all([
+    prisma.listing.findMany({ where, orderBy: { criadoEm: "desc" }, take: 6, include: includeCompleto }),
+    prisma.professional.findMany({ where, orderBy: { criadoEm: "desc" }, take: 6, include: includeCompleto }),
+  ]);
+
+  const destaques = [
+    ...listingRows.map((l) => ({ kind: "empresa" as const, item: { ...l, criadoEm: l.criadoEm.toISOString() } })),
+    ...professionalRows.map((p) => ({
+      kind: "profissional" as const,
+      item: { ...p, criadoEm: p.criadoEm.toISOString() },
+    })),
+  ]
+    .sort((a, b) => (a.item.criadoEm < b.item.criadoEm ? 1 : -1))
+    .slice(0, 6);
 
   return (
     <div>
@@ -57,18 +69,22 @@ export default async function Home() {
         </div>
       </section>
 
-      {professionals.length > 0 && (
+      {destaques.length > 0 && (
         <section className="featured-section">
           <div className="container">
             <div className="section-header">
-              <h2>Profissionais em Destaque</h2>
-              <p>Encontre especialistas locais prontos para atender você</p>
+              <h2>Em Destaque</h2>
+              <p>Empresas e profissionais locais prontos para atender você</p>
             </div>
 
             <div className="cards-grid">
-              {professionals.map((p) => (
-                <ResultCard key={p.id} kind="profissional" item={p} />
-              ))}
+              {destaques.map((d) =>
+                d.kind === "empresa" ? (
+                  <ResultCard key={`empresa-${d.item.id}`} kind="empresa" item={d.item} />
+                ) : (
+                  <ResultCard key={`profissional-${d.item.id}`} kind="profissional" item={d.item} />
+                )
+              )}
             </div>
           </div>
         </section>

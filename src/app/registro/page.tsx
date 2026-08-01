@@ -76,6 +76,16 @@ export default function RegistroPage() {
           {carregando ? "Criando..." : "Criar conta"}
         </button>
       </form>
+
+      <div className="my-4 flex items-center gap-3 text-xs text-[var(--color-text-muted)]">
+        <div className="h-px flex-1" style={{ background: "var(--color-border, #E2E8F0)" }} />
+        ou
+        <div className="h-px flex-1" style={{ background: "var(--color-border, #E2E8F0)" }} />
+      </div>
+
+      <button type="button" onClick={() => signIn("google", { callbackUrl: "/" })} className="btn btn-outline w-full">
+        Entrar com Google
+      </button>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { MapPin, ShieldCheck } from "lucide-react";
 import type { Listing, Professional } from "@/types/catalog";
 import { categoryCoverClass } from "@/components/CategoryIcon";
@@ -27,6 +28,9 @@ export function ResultCard({ kind, item }: Props) {
     kind === "empresa"
       ? (item as Listing).endereco
       : (item as Professional).bairroAtuacao ?? (item as Professional).city.nome;
+  const cidadeSlug = item.city.slug ?? item.city.id;
+  const categoriaSlug = item.subcategory?.slug ?? item.category.slug;
+  const href = `/${cidadeSlug}/${categoriaSlug}?id=${item.id}`;
 
   return (
     <>
@@ -52,7 +56,11 @@ export function ResultCard({ kind, item }: Props) {
         </div>
 
         <div className="profile-content">
-          <h3 className="profile-name">{item.nome}</h3>
+          <h3 className="profile-name">
+            <Link href={href} style={{ textDecoration: "none", color: "inherit" }}>
+              {item.nome}
+            </Link>
+          </h3>
           <p className="profile-category">
             {item.category.nome}
             {item.subcategory ? ` · ${item.subcategory.nome}` : ""}

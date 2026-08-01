@@ -1,10 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCatalogData } from "@/lib/useCatalogData";
 import { uploadFile } from "@/lib/uploadFile";
+import { formatWhatsappBR, isWhatsappCompleto } from "@/lib/whatsappMask";
+import { normalizeText } from "@/lib/text";
 import type { Listing } from "@/types/catalog";
+
+function formatCnpj(value: string) {
+  const d = value.replace(/\D/g, "").slice(0, 14);
+  let out = d.slice(0, 2);
+  if (d.length > 2) out += "." + d.slice(2, 5);
+  if (d.length > 5) out += "." + d.slice(5, 8);
+  if (d.length > 8) out += "/" + d.slice(8, 12);
+  if (d.length > 12) out += "-" + d.slice(12, 14);
+  return out;
+}
 
 export function EmpresaForm({
   mode,
@@ -32,7 +44,94 @@ export function EmpresaForm({
   const [enviando, setEnviando] = useState(false);
   const [sucesso, setSucesso] = useState(false);
 
+  const [cnpj, setCnpj] = useState(formatCnpj(initialData?.cnpj ?? ""));
+  const [buscandoCnpj, setBuscandoCnpj] = useState(false);
+  const [cnpjErro, setCnpjErro] = useState<string | null>(null);
+  const [atividadeCnpj, setAtividadeCnpj] = useState<string | null>(null);
+
+  const [whatsapp, setWhatsapp] = useState(formatWhatsappBR(initialData?.whatsapp ?? ""));
+  const [validandoWhatsapp, setValidandoWhatsapp] = useState(false);
+  const [whatsappErro, setWhatsappErro] = useState<string | null>(null);
+
+  const nomeRef = useRef<HTMLInputElement>(null);
+  const enderecoRef = useRef<HTMLInputElement>(null);
+  const telefoneRef = useRef<HTMLInputElement>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
+
   const categoriaSelecionada = categories.find((c) => c.id === categoryId);
+
+  async function handleCnpjBlur() {
+    const digits = cnpj.replace(/\D/g, "");
+    setCnpjErro(null);
+    if (digits.length !== 14) return;
+
+    setBuscandoCnpj(true);
+    try {
+      const res = await fetch(`/api/v1/cnpj/${digits}`);
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        setCnpjErro(body?.error ?? "Não foi possível consultar o CNPJ.");
+        return;
+      }
+      const data = await res.json();
+
+      if (nomeRef.current && !nomeRef.current.value) {
+        nomeRef.current.value = data.nomeFantasia || data.razaoSocial || "";
+      }
+      if (enderecoRef.current && !enderecoRef.current.value && data.endereco) {
+        enderecoRef.current.value = data.endereco;
+      }
+      if (telefoneRef.current && !telefoneRef.current.value && data.telefone) {
+        telefoneRef.current.value = data.telefone;
+      }
+      if (emailRef.current && !emailRef.current.value && data.email) {
+        emailRef.current.value = data.email;
+      }
+      setAtividadeCnpj(data.atividadePrincipal ?? null);
+
+      if (!cityId && data.municipio) {
+        const alvo = normalizeText(data.municipio);
+        const cidade = cities.find(
+          (c) => normalizeText(c.nome) === alvo && (!data.uf || c.uf === data.uf)
+        );
+        if (cidade) setCityId(cidade.id);
+      }
+    } catch {
+      setCnpjErro("Não foi possível consultar o CNPJ.");
+    } finally {
+      setBuscandoCnpj(false);
+    }
+  }
+
+  function handleWhatsappChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setWhatsappErro(null);
+    setWhatsapp(formatWhatsappBR(e.target.value));
+  }
+
+  async function handleWhatsappBlur() {
+    if (!isWhatsappCompleto(whatsapp)) return;
+
+    setValidandoWhatsapp(true);
+    setWhatsappErro(null);
+    try {
+      const digits = whatsapp.replace(/\D/g, "");
+      const res = await fetch("/api/v1/whatsapp/check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ whatsapp: digits }),
+      });
+      const data = await res.json();
+      if (res.ok && !data.exists) {
+        setWhatsappErro("Esse número não parece ter WhatsApp ativo.");
+      } else if (!res.ok) {
+        setWhatsappErro(data.error ?? "Não foi possível validar o número agora.");
+      }
+    } catch {
+      setWhatsappErro("Não foi possível validar o número agora.");
+    } finally {
+      setValidandoWhatsapp(false);
+    }
+  }
 
   async function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -74,18 +173,21 @@ export function EmpresaForm({
 
     const payload = {
       nome: form.get("nome"),
+      cnpj: form.get("cnpj") || undefined,
       categoryId,
       subcategoryId: subcategoryId || undefined,
       cityId,
       descricao: form.get("descricao"),
       telefone: form.get("telefone") || undefined,
-      whatsapp: form.get("whatsapp") || undefined,
+      telefoneFixo: form.get("telefoneFixo") || undefined,
+      whatsapp: whatsapp.replace(/\D/g, "") || undefined,
       instagram: form.get("instagram") || undefined,
       facebook: form.get("facebook") || undefined,
       site: form.get("site") || undefined,
       email: form.get("email") || undefined,
       endereco: form.get("endereco"),
       horario: form.get("horario") || undefined,
+      valorHora: form.get("valorHora") || undefined,
       aceitaPix: form.get("aceitaPix") === "on",
       aceitaCartao: form.get("aceitaCartao") === "on",
       entrega: form.get("entrega") === "on",
@@ -136,7 +238,29 @@ export function EmpresaForm({
 
       <form onSubmit={handleSubmit} className="surface flex flex-col gap-4 p-6 sm:p-8">
         <Field label="Nome do negócio" required>
-          <input name="nome" required defaultValue={initialData?.nome} className="input" />
+          <input
+            ref={nomeRef}
+            name="nome"
+            required
+            defaultValue={initialData?.nome}
+            className="input"
+          />
+        </Field>
+
+        <Field label="CNPJ">
+          <input
+            name="cnpj"
+            value={cnpj}
+            onChange={(e) => setCnpj(formatCnpj(e.target.value))}
+            onBlur={handleCnpjBlur}
+            placeholder="00.000.000/0000-00"
+            inputMode="numeric"
+            className="input"
+          />
+          {buscandoCnpj && (
+            <p className="mt-1 text-xs text-[var(--color-text-muted)]">Consultando CNPJ...</p>
+          )}
+          {cnpjErro && <p className="mt-1 text-xs text-[var(--color-accent-coral)]">{cnpjErro}</p>}
         </Field>
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -158,6 +282,11 @@ export function EmpresaForm({
                 </option>
               ))}
             </select>
+            {atividadeCnpj && (
+              <p className="mt-1 text-xs text-[var(--color-text-muted)]">
+                Atividade da Receita: {atividadeCnpj}
+              </p>
+            )}
           </Field>
 
           <Field label="Subcategoria">
@@ -206,7 +335,13 @@ export function EmpresaForm({
         </Field>
 
         <Field label="Endereço" required>
-          <input name="endereco" required defaultValue={initialData?.endereco} className="input" />
+          <input
+            ref={enderecoRef}
+            name="endereco"
+            required
+            defaultValue={initialData?.endereco}
+            className="input"
+          />
         </Field>
 
         <Field label="Horário de funcionamento">
@@ -218,17 +353,50 @@ export function EmpresaForm({
           />
         </Field>
 
+        {categoriaSelecionada?.slug === "servicos" && (
+          <Field label="Valor por hora / custo médio">
+            <input
+              name="valorHora"
+              placeholder="Ex: R$ 50/hora ou a partir de R$ 100"
+              defaultValue={initialData?.valorHora ?? undefined}
+              className="input"
+            />
+          </Field>
+        )}
+
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Telefone">
-            <input name="telefone" defaultValue={initialData?.telefone ?? undefined} className="input" />
+            <input
+              ref={telefoneRef}
+              name="telefone"
+              defaultValue={initialData?.telefone ?? undefined}
+              className="input"
+            />
+          </Field>
+          <Field label="Telefone fixo">
+            <input
+              name="telefoneFixo"
+              placeholder="(94) 3346-0000"
+              defaultValue={initialData?.telefoneFixo ?? undefined}
+              className="input"
+            />
           </Field>
           <Field label="WhatsApp">
             <input
               name="whatsapp"
-              placeholder="5594999999999"
-              defaultValue={initialData?.whatsapp ?? undefined}
+              value={whatsapp}
+              onChange={handleWhatsappChange}
+              onBlur={handleWhatsappBlur}
+              placeholder="+55 (94) 99999-9999"
+              inputMode="numeric"
               className="input"
             />
+            {validandoWhatsapp && (
+              <p className="mt-1 text-xs text-[var(--color-text-muted)]">Validando número...</p>
+            )}
+            {whatsappErro && (
+              <p className="mt-1 text-xs text-[var(--color-accent-coral)]">{whatsappErro}</p>
+            )}
           </Field>
           <Field label="Instagram">
             <input name="instagram" defaultValue={initialData?.instagram ?? undefined} className="input" />
@@ -240,7 +408,13 @@ export function EmpresaForm({
             <input name="site" defaultValue={initialData?.site ?? undefined} className="input" />
           </Field>
           <Field label="E-mail">
-            <input name="email" type="email" defaultValue={initialData?.email ?? undefined} className="input" />
+            <input
+              ref={emailRef}
+              name="email"
+              type="email"
+              defaultValue={initialData?.email ?? undefined}
+              className="input"
+            />
           </Field>
         </div>
 

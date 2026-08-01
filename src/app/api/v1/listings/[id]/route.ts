@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import { passaGateAssinatura } from "@/lib/subscriptionGate";
 
 export async function GET(
   _request: NextRequest,
@@ -17,6 +18,7 @@ export async function GET(
       subcategory: true,
       city: true,
       media: { orderBy: { ordem: "asc" } },
+      owner: { select: { criadoEm: true, subscriptionStatus: true } },
     },
   });
 
@@ -27,11 +29,14 @@ export async function GET(
   const isOwnerOrAdmin =
     !!session?.user && (session.user.id === listing.ownerId || session.user.role === "ADMIN");
 
-  if (listing.status !== "APROVADO" && !isOwnerOrAdmin) {
+  const visivel = listing.status === "APROVADO" && passaGateAssinatura(listing.owner);
+
+  if (!visivel && !isOwnerOrAdmin) {
     return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
   }
 
-  return NextResponse.json(listing);
+  const { owner: _owner, ...listingSemOwner } = listing;
+  return NextResponse.json(listingSemOwner);
 }
 
 const mediaSchema = z.object({
@@ -39,13 +44,21 @@ const mediaSchema = z.object({
   url: z.string().min(1),
 });
 
+const cnpjRegex = /^\d{14}$/;
+
 const updateSchema = z.object({
   nome: z.string().min(2),
+  cnpj: z
+    .string()
+    .optional()
+    .transform((v) => (v ? v.replace(/\D/g, "") : undefined))
+    .refine((v) => !v || cnpjRegex.test(v), "CNPJ inválido"),
   categoryId: z.string(),
   subcategoryId: z.string().optional(),
   cityId: z.string(),
   descricao: z.string().min(10),
   telefone: z.string().optional(),
+  telefoneFixo: z.string().optional(),
   whatsapp: z.string().optional(),
   instagram: z.string().optional(),
   facebook: z.string().optional(),
@@ -53,6 +66,7 @@ const updateSchema = z.object({
   email: z.string().email().optional().or(z.literal("")),
   endereco: z.string().min(3),
   horario: z.string().optional(),
+  valorHora: z.string().optional(),
   aceitaPix: z.boolean().optional(),
   aceitaCartao: z.boolean().optional(),
   entrega: z.boolean().optional(),
@@ -95,8 +109,6 @@ export async function PATCH(
     data: {
       ...data,
       email: data.email || undefined,
-      status: "PENDENTE",
-      motivoReprovacao: null,
       media: media?.length ? { create: media } : undefined,
     },
     include: { media: { orderBy: { ordem: "asc" } }, category: true, subcategory: true, city: true },

@@ -70,6 +70,13 @@ function LoginForm() {
             onChange={(e) => setSenha(e.target.value)}
             className="input"
           />
+          <Link
+            href="/esqueci-senha"
+            className="mt-1 inline-block text-xs font-semibold hover:underline"
+            style={{ color: "var(--color-primary-cyan)" }}
+          >
+            Esqueci minha senha
+          </Link>
         </div>
 
         {erro && <p className="text-sm text-[var(--color-accent-coral)]">{erro}</p>}
@@ -78,6 +85,20 @@ function LoginForm() {
           {carregando ? "Entrando..." : "Entrar"}
         </button>
       </form>
+
+      <div className="my-4 flex items-center gap-3 text-xs text-[var(--color-text-muted)]">
+        <div className="h-px flex-1" style={{ background: "var(--color-border, #E2E8F0)" }} />
+        ou
+        <div className="h-px flex-1" style={{ background: "var(--color-border, #E2E8F0)" }} />
+      </div>
+
+      <button
+        type="button"
+        onClick={() => signIn("google", { callbackUrl })}
+        className="btn btn-outline w-full"
+      >
+        Entrar com Google
+      </button>
 
       <p className="mt-4 text-center text-sm text-[var(--color-text-muted)]">
         Não tem conta?{" "}

@@ -42,6 +42,10 @@ export default async function CadastroPage() {
             Edite os dados do seu negócio ou perfil abaixo.
           </p>
 
+          <Link href="/assinatura" className="mb-8 inline-block text-sm font-semibold" style={{ color: "var(--color-primary-cyan)" }}>
+            Gerenciar assinatura →
+          </Link>
+
           <div className="mb-12 flex flex-col gap-3">
             {meusCadastros.map((c) => (
               <Link

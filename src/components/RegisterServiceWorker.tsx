@@ -6,13 +6,8 @@ export function RegisterServiceWorker() {
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
 
-    if (process.env.NODE_ENV === "production") {
-      navigator.serviceWorker.register("/sw.js").catch(() => {});
-      return;
-    }
-
-    // Em dev, o cache-first do SW briga com o hot reload e prende páginas
-    // antigas em cache. Remove qualquer SW/cache que tenha ficado de antes.
+    // PWA desativado por ora (cache-first prendia páginas antigas em produção).
+    // Remove qualquer SW/cache que tenha ficado de antes, em qualquer ambiente.
     navigator.serviceWorker.getRegistrations().then((regs) => {
       regs.forEach((reg) => reg.unregister());
     });

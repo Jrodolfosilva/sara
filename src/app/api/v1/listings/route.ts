@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { normalizeText } from "@/lib/text";
 import { withUniquePublicId } from "@/lib/publicId";
+import { gateAssinaturaOwner } from "@/lib/subscriptionGate";
 
 const listingInclude = {
   category: true,
@@ -22,11 +23,13 @@ export async function GET(request: NextRequest) {
   const page = Math.max(1, Number(params.get("page") ?? 1));
   const pageSize = Math.min(50, Math.max(1, Number(params.get("pageSize") ?? 20)));
 
+  const gateOwner = gateAssinaturaOwner();
   const where: Prisma.ListingWhereInput = {
     status: "APROVADO",
     ...(categoryId && { categoryId }),
     ...(subcategoryId && { subcategoryId }),
     ...(cityId && { cityId }),
+    ...(gateOwner && { owner: gateOwner }),
   };
 
   let items;
@@ -75,13 +78,21 @@ const mediaSchema = z.object({
   url: z.string().min(1),
 });
 
+const cnpjRegex = /^\d{14}$/;
+
 const createSchema = z.object({
   nome: z.string().min(2),
+  cnpj: z
+    .string()
+    .optional()
+    .transform((v) => (v ? v.replace(/\D/g, "") : undefined))
+    .refine((v) => !v || cnpjRegex.test(v), "CNPJ inválido"),
   categoryId: z.string(),
   subcategoryId: z.string().optional(),
   cityId: z.string(),
   descricao: z.string().min(10),
   telefone: z.string().optional(),
+  telefoneFixo: z.string().optional(),
   whatsapp: z.string().optional(),
   instagram: z.string().optional(),
   facebook: z.string().optional(),
@@ -91,6 +102,7 @@ const createSchema = z.object({
   lat: z.number().optional(),
   lng: z.number().optional(),
   horario: z.string().optional(),
+  valorHora: z.string().optional(),
   aceitaPix: z.boolean().optional(),
   aceitaCartao: z.boolean().optional(),
   entrega: z.boolean().optional(),

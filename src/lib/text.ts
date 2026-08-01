@@ -4,3 +4,9 @@ export function normalizeText(value: string): string {
     .replace(/\p{Diacritic}/gu, "")
     .toLowerCase();
 }
+
+export function slugify(value: string): string {
+  return normalizeText(value)
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}

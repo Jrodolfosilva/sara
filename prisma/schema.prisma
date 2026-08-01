@@ -26,10 +26,20 @@ enum MediaType {
   VIDEO
 }
 
+enum SubscriptionStatus {
+  NONE
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  INCOMPLETE
+}
+
 model City {
   id            String         @id @default(cuid())
   nome          String
   uf            String
+  slug          String?        @unique
   ativa         Boolean        @default(false)
   listings      Listing[]
   professionals Professional[]
@@ -60,14 +70,22 @@ model Subcategory {
 }
 
 model User {
-  id            String         @id @default(cuid())
-  nome          String
-  email         String         @unique
-  senhaHash     String
-  role          Role           @default(USER)
-  criadoEm      DateTime       @default(now())
-  listings      Listing[]
-  professionals Professional[]
+  id                   String              @id @default(cuid())
+  nome                 String
+  email                String              @unique
+  senhaHash            String?
+  role                 Role                @default(USER)
+  emailVerificado      Boolean             @default(false)
+  criadoEm             DateTime            @default(now())
+  listings             Listing[]
+  professionals        Professional[]
+  reviews              Review[]
+
+  stripeCustomerId     String?             @unique
+  stripeSubscriptionId String?             @unique
+  subscriptionStatus   SubscriptionStatus  @default(NONE)
+  trialEndsAt          DateTime?
+  currentPeriodEnd     DateTime?
 }
 
 model Listing {
@@ -83,13 +101,16 @@ model Listing {
   subcategory           Subcategory?  @relation(fields: [subcategoryId], references: [id])
 
   nome                  String
+  cnpj                  String?       @unique
   descricao             String
   telefone              String?
+  telefoneFixo          String?
   whatsapp              String?
   instagram             String?
   facebook              String?
   site                  String?
   email                 String?
+  valorHora             String?
 
   endereco              String
   lat                   Float?
@@ -109,6 +130,7 @@ model Listing {
   atualizadoEm          DateTime      @updatedAt
 
   media                 Media[]
+  reviews               Review[]
 
   @@index([status])
   @@index([cityId, categoryId])
@@ -136,6 +158,7 @@ model Professional {
   facebook         String?
   descricao        String
   bairroAtuacao    String?
+  valorHora        String?
 
   status           ListingStatus @default(PENDENTE)
   motivoReprovacao String?
@@ -144,6 +167,7 @@ model Professional {
   atualizadoEm     DateTime      @updatedAt
 
   media            Media[]
+  reviews          Review[]
 
   @@index([status])
   @@index([cityId, categoryId])
@@ -158,4 +182,22 @@ model Media {
   tipo           MediaType
   url            String
   ordem          Int           @default(0)
+}
+
+model Review {
+  id             String        @id @default(cuid())
+  listingId      String?
+  listing        Listing?      @relation(fields: [listingId], references: [id])
+  professionalId String?
+  professional   Professional? @relation(fields: [professionalId], references: [id])
+  authorId       String
+  author         User          @relation(fields: [authorId], references: [id])
+  estrelas       Int
+  depoimento     String
+  criadoEm       DateTime      @default(now())
+
+  @@unique([authorId, listingId])
+  @@unique([authorId, professionalId])
+  @@index([listingId])
+  @@index([professionalId])
 }

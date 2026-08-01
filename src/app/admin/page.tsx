@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import type { Listing, Professional } from "@/types/catalog";
+
+function editarHref(tipo: "listings" | "professionals", id: string) {
+  return tipo === "listings" ? `/cadastro/empresa/${id}/editar` : `/cadastro/profissional/${id}/editar`;
+}
 
 type Pendentes = { listings: Listing[]; professionals: Professional[] };
 type Busca = { listing: Listing | null; professional: Professional | null };
@@ -47,7 +52,15 @@ export default function AdminPage() {
 
   return (
     <div className="container py-10">
-      <h1 className="mb-6 text-2xl font-bold">Painel administrativo</h1>
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Painel administrativo</h1>
+        <a
+          href="/api/v1/admin/users/export"
+          className="rounded bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-hover"
+        >
+          Exportar usuários (Excel)
+        </a>
+      </div>
 
       <BuscaPorCodigo />
 
@@ -78,6 +91,7 @@ export default function AdminPage() {
                   {l.endereco} {l.whatsapp && `· ${l.whatsapp}`}
                 </p>
                 <Acoes
+                  editarHref={editarHref("listings", l.id)}
                   onAprovar={() => aprovar("listings", l.id)}
                   onReprovar={() => reprovar("listings", l.id)}
                   onExcluir={() => excluir("listings", l.id)}
@@ -106,6 +120,7 @@ export default function AdminPage() {
                 <p className="mt-1 text-sm">{p.descricao}</p>
                 <p className="mt-1 text-xs text-black/60">{p.whatsapp}</p>
                 <Acoes
+                  editarHref={editarHref("professionals", p.id)}
                   onAprovar={() => aprovar("professionals", p.id)}
                   onReprovar={() => reprovar("professionals", p.id)}
                   onExcluir={() => excluir("professionals", p.id)}
@@ -203,6 +218,12 @@ function BuscaPorCodigo() {
           </p>
 
           <div className="mt-3 flex gap-2 text-sm">
+            <Link
+              href={editarHref(tipo, item.id)}
+              className="rounded border border-black/20 px-3 py-1 hover:bg-black/5"
+            >
+              Editar
+            </Link>
             {item.status !== "APROVADO" && (
               <button
                 onClick={() => reativar(tipo, item.id)}
@@ -230,16 +251,21 @@ function BuscaPorCodigo() {
 }
 
 function Acoes({
+  editarHref,
   onAprovar,
   onReprovar,
   onExcluir,
 }: {
+  editarHref: string;
   onAprovar: () => void;
   onReprovar: () => void;
   onExcluir: () => void;
 }) {
   return (
     <div className="mt-3 flex gap-2 text-sm">
+      <Link href={editarHref} className="rounded border border-black/20 px-3 py-1 hover:bg-black/5">
+        Editar
+      </Link>
       <button
         onClick={onAprovar}
         className="rounded bg-primary px-3 py-1 font-medium text-white hover:bg-primary-hover"

@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
-import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import { auth } from "@/auth";
+import { minioClient, MINIO_BUCKET, minioPublicUrl, garantirBucket } from "@/lib/minio";
 
-const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
 const MAX_SIZE = 8 * 1024 * 1024; // 8MB
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "video/mp4"];
 
@@ -29,12 +28,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Arquivo maior que 8MB" }, { status: 400 });
   }
 
-  await mkdir(UPLOAD_DIR, { recursive: true });
+  await garantirBucket();
 
   const ext = path.extname(file.name) || "";
-  const filename = `${randomUUID()}${ext}`;
+  const objectName = `${randomUUID()}${ext}`;
   const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(path.join(UPLOAD_DIR, filename), buffer);
 
-  return NextResponse.json({ url: `/uploads/${filename}` }, { status: 201 });
+  await minioClient.putObject(MINIO_BUCKET, objectName, buffer, buffer.length, {
+    "Content-Type": file.type,
+  });
+
+  return NextResponse.json({ url: minioPublicUrl(objectName) }, { status: 201 });
 }

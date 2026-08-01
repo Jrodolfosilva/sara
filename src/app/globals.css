@@ -186,7 +186,7 @@
 }
 
 .logo-img {
-  width: 280px;
+  width: 61px;
   height: auto;
 }
 
@@ -811,8 +811,7 @@
   }
 
   .logo-img {
-    width: auto;
-    max-width: 80vw;
+    width: 20vw;
   }
 
   .cards-grid {
