@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
+import { GoogleButton } from "@/components/GoogleButton";
 
 export default function RegistroPage() {
   const router = useRouter();
@@ -83,9 +84,7 @@ export default function RegistroPage() {
         <div className="h-px flex-1" style={{ background: "var(--color-border, #E2E8F0)" }} />
       </div>
 
-      <button type="button" onClick={() => signIn("google", { callbackUrl: "/" })} className="btn btn-outline w-full">
-        Entrar com Google
-      </button>
+      <GoogleButton />
     </div>
   );
 }

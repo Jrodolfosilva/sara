@@ -4,6 +4,7 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
+import { GoogleButton } from "@/components/GoogleButton";
 
 export default function LoginPage() {
   return (
@@ -92,13 +93,7 @@ function LoginForm() {
         <div className="h-px flex-1" style={{ background: "var(--color-border, #E2E8F0)" }} />
       </div>
 
-      <button
-        type="button"
-        onClick={() => signIn("google", { callbackUrl })}
-        className="btn btn-outline w-full"
-      >
-        Entrar com Google
-      </button>
+      <GoogleButton callbackUrl={callbackUrl} />
 
       <p className="mt-4 text-center text-sm text-[var(--color-text-muted)]">
         Não tem conta?{" "}
