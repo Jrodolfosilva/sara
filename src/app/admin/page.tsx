@@ -11,6 +11,19 @@ function editarHref(tipo: "listings" | "professionals", id: string) {
 type Pendentes = { listings: Listing[]; professionals: Professional[] };
 type Busca = { listing: Listing | null; professional: Professional | null };
 
+type Usuario = {
+  id: string;
+  nome: string;
+  email: string;
+  role: "USER" | "OWNER" | "ADMIN";
+  criadoEm: string;
+  subscriptionStatus: "NONE" | "TRIALING" | "ACTIVE" | "PAST_DUE" | "CANCELED" | "INCOMPLETE";
+  trialEndsAt: string | null;
+  currentPeriodEnd: string | null;
+  stripeCustomerId: string | null;
+  _count: { listings: number; professionals: number };
+};
+
 export default function AdminPage() {
   const [dados, setDados] = useState<Pendentes>({ listings: [], professionals: [] });
   const [carregando, setCarregando] = useState(true);
@@ -52,17 +65,13 @@ export default function AdminPage() {
 
   return (
     <div className="container py-10">
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6">
         <h1 className="text-2xl font-bold">Painel administrativo</h1>
-        <a
-          href="/api/v1/admin/users/export"
-          className="rounded bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-hover"
-        >
-          Exportar usuários (Excel)
-        </a>
       </div>
 
       <BuscaPorCodigo />
+
+      <Usuarios />
 
       <h2 className="mb-3 mt-10 text-lg font-semibold">Fila de aprovação</h2>
 
@@ -131,6 +140,137 @@ export default function AdminPage() {
         </section>
       )}
     </div>
+  );
+}
+
+const STATUS_LABEL: Record<Usuario["subscriptionStatus"], string> = {
+  NONE: "Sem assinatura",
+  TRIALING: "Em teste",
+  ACTIVE: "Ativa",
+  PAST_DUE: "Pagamento atrasado",
+  CANCELED: "Cancelada",
+  INCOMPLETE: "Incompleta",
+};
+
+const STATUS_CLASSE: Record<Usuario["subscriptionStatus"], string> = {
+  NONE: "bg-black/10 text-black/60",
+  TRIALING: "bg-blue-100 text-blue-700",
+  ACTIVE: "bg-green-100 text-green-700",
+  PAST_DUE: "bg-yellow-100 text-yellow-700",
+  CANCELED: "bg-red-100 text-red-700",
+  INCOMPLETE: "bg-yellow-100 text-yellow-700",
+};
+
+function Usuarios() {
+  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [carregando, setCarregando] = useState(true);
+  const [processando, setProcessando] = useState<string | null>(null);
+
+  async function carregar() {
+    setCarregando(true);
+    const res = await fetch("/api/v1/admin/users");
+    if (res.ok) {
+      const body = await res.json();
+      setUsuarios(body.users);
+    }
+    setCarregando(false);
+  }
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- carrega usuários ao montar a página
+    carregar();
+  }, []);
+
+  async function ativarAssinatura(id: string) {
+    if (!window.confirm("Ativar assinatura manualmente para este usuário por 30 dias?")) return;
+    setProcessando(id);
+    await fetch(`/api/v1/admin/users/${id}/activate-subscription`, { method: "POST" });
+    await carregar();
+    setProcessando(null);
+  }
+
+  async function desativarAssinatura(id: string) {
+    if (!window.confirm("Desativar a assinatura deste usuário?")) return;
+    setProcessando(id);
+    await fetch(`/api/v1/admin/users/${id}/deactivate-subscription`, { method: "POST" });
+    await carregar();
+    setProcessando(null);
+  }
+
+  return (
+    <section className="mt-10">
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-lg font-semibold">Usuários cadastrados ({usuarios.length})</h2>
+        <a
+          href="/api/v1/admin/users/export"
+          className="rounded bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-hover"
+        >
+          Exportar usuários (Excel)
+        </a>
+      </div>
+
+      {carregando && <p className="text-sm text-black/60">Carregando...</p>}
+
+      {!carregando && usuarios.length > 0 && (
+        <div className="overflow-x-auto rounded-lg border border-black/10">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-black/5">
+              <tr>
+                <th className="px-3 py-2">Nome</th>
+                <th className="px-3 py-2">Email</th>
+                <th className="px-3 py-2">Papel</th>
+                <th className="px-3 py-2">Cadastrado em</th>
+                <th className="px-3 py-2">Assinatura</th>
+                <th className="px-3 py-2">Válida até</th>
+                <th className="px-3 py-2">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {usuarios.map((u) => (
+                <tr key={u.id} className="border-t border-black/10">
+                  <td className="px-3 py-2">{u.nome}</td>
+                  <td className="px-3 py-2">{u.email}</td>
+                  <td className="px-3 py-2">{u.role}</td>
+                  <td className="px-3 py-2 whitespace-nowrap">
+                    {new Date(u.criadoEm).toLocaleDateString("pt-BR")}
+                  </td>
+                  <td className="px-3 py-2">
+                    <span className={`rounded px-2 py-1 text-xs font-medium ${STATUS_CLASSE[u.subscriptionStatus]}`}>
+                      {STATUS_LABEL[u.subscriptionStatus]}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2 whitespace-nowrap">
+                    {u.currentPeriodEnd ? new Date(u.currentPeriodEnd).toLocaleDateString("pt-BR") : "—"}
+                  </td>
+                  <td className="px-3 py-2">
+                    <div className="flex gap-2">
+                      {u.subscriptionStatus !== "ACTIVE" && (
+                        <button
+                          onClick={() => ativarAssinatura(u.id)}
+                          disabled={processando === u.id}
+                          className="rounded bg-primary px-3 py-1 text-xs font-medium text-white hover:bg-primary-hover disabled:opacity-50"
+                        >
+                          Ativar
+                        </button>
+                      )}
+                      {u.subscriptionStatus !== "NONE" && (
+                        <button
+                          onClick={() => desativarAssinatura(u.id)}
+                          disabled={processando === u.id}
+                          className="rounded border border-black/20 px-3 py-1 text-xs hover:bg-black/5 disabled:opacity-50"
+                        >
+                          Desativar
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
   );
 }
 
