@@ -25,6 +25,7 @@ const publicSelect = {
   subcategory: true,
   city: true,
   media: { orderBy: { ordem: "asc" as const } },
+  products: { orderBy: { ordem: "asc" as const } },
 } satisfies Prisma.ProfessionalSelect;
 
 export async function GET(request: NextRequest) {
@@ -88,6 +89,13 @@ export async function GET(request: NextRequest) {
 
 const cpfRegex = /^\d{11}$/;
 
+const productSchema = z.object({
+  nome: z.string().min(1),
+  descricao: z.string().optional(),
+  valor: z.string().optional(),
+  imagemUrl: z.string().optional(),
+});
+
 const createSchema = z.object({
   nome: z.string().min(2),
   cpf: z.string().regex(cpfRegex, "CPF deve ter 11 dígitos, sem pontuação"),
@@ -101,8 +109,9 @@ const createSchema = z.object({
   email: z.string().email().optional().or(z.literal("")),
   instagram: z.string().optional(),
   facebook: z.string().optional(),
-  fotoPerfilUrl: z.string().optional(),
+  fotoUrls: z.array(z.string()).max(6).optional(),
   valorHora: z.string().optional(),
+  products: z.array(productSchema).max(12).optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -117,7 +126,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { cpf, dataNascimento, fotoPerfilUrl, ...data } = parsed.data;
+  const { cpf, dataNascimento, fotoUrls, products, ...data } = parsed.data;
 
   const cpfDuplicado = await prisma.professional.findUnique({
     where: { cpfHash: hashCpf(cpf) },
@@ -136,7 +145,12 @@ export async function POST(request: NextRequest) {
         cpfHash: hashCpf(cpf),
         dataNascimento: new Date(dataNascimento),
         ownerId: session.user.id,
-        media: fotoPerfilUrl ? { create: [{ tipo: "FOTO", url: fotoPerfilUrl, ordem: 0 }] } : undefined,
+        media: fotoUrls?.length
+          ? { create: fotoUrls.map((url, i) => ({ tipo: "FOTO" as const, url, ordem: i })) }
+          : undefined,
+        products: products?.length
+          ? { create: products.map((p, i) => ({ ...p, ordem: i })) }
+          : undefined,
       },
       select: publicSelect,
     })

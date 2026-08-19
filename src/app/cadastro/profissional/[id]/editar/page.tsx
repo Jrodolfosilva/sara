@@ -22,6 +22,7 @@ const editSelect = {
   subcategory: true,
   city: true,
   media: { orderBy: { ordem: "asc" as const } },
+  products: { orderBy: { ordem: "asc" as const } },
 } satisfies Prisma.ProfessionalSelect;
 
 export default async function EditarProfissionalPage({

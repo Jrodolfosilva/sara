@@ -12,6 +12,7 @@ const includeCompleto = {
   subcategory: true,
   city: true,
   media: { orderBy: { ordem: "asc" as const } },
+  products: { orderBy: { ordem: "asc" as const } },
 };
 
 export default async function Home() {

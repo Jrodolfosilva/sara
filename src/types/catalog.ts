@@ -28,6 +28,15 @@ export type Media = {
   ordem: number;
 };
 
+export type Product = {
+  id: string;
+  nome: string;
+  descricao: string | null;
+  valor: string | null;
+  imagemUrl: string | null;
+  ordem: number;
+};
+
 export type Listing = {
   id: string;
   codigoPublico: string;
@@ -55,6 +64,7 @@ export type Listing = {
   subcategory: Subcategory | null;
   city: City;
   media: Media[];
+  products: Product[];
   criadoEm: string;
 };
 
@@ -74,6 +84,7 @@ export type Professional = {
   subcategory: Subcategory | null;
   city: City;
   media: Media[];
+  products: Product[];
   criadoEm: string;
 };
 

@@ -6,7 +6,10 @@ import { useCatalogData } from "@/lib/useCatalogData";
 import { uploadFile } from "@/lib/uploadFile";
 import { formatWhatsappBR, isWhatsappCompleto } from "@/lib/whatsappMask";
 import { normalizeText } from "@/lib/text";
+import { ProductsEditor, productsToPayload, useProductsDraft } from "@/components/forms/ProductsEditor";
 import type { Listing } from "@/types/catalog";
+
+const MAX_FOTOS = 6;
 
 function formatCnpj(value: string) {
   const d = value.replace(/\D/g, "").slice(0, 14);
@@ -39,6 +42,7 @@ export function EmpresaForm({
   const [fotoUrls, setFotoUrls] = useState<string[]>(
     initialData?.media.filter((m) => m.tipo === "FOTO").map((m) => m.url) ?? []
   );
+  const [products, setProducts] = useProductsDraft(initialData?.products);
   const [enviandoMidia, setEnviandoMidia] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
@@ -147,7 +151,7 @@ export function EmpresaForm({
   }
 
   async function handleFotosChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? []).slice(0, 8 - fotoUrls.length);
+    const files = Array.from(e.target.files ?? []).slice(0, MAX_FOTOS - fotoUrls.length);
     if (!files.length) return;
     setEnviandoMidia(true);
     try {
@@ -193,6 +197,7 @@ export function EmpresaForm({
       entrega: form.get("entrega") === "on",
       atendimentoDomiciliar: form.get("atendimentoDomiciliar") === "on",
       media,
+      products: productsToPayload(products),
     };
 
     const res = await fetch(
@@ -447,15 +452,17 @@ export function EmpresaForm({
           )}
         </Field>
 
-        <Field label={`Fotos (até 8) — ${fotoUrls.length}/8`}>
+        <Field label={`Galeria de fotos (até ${MAX_FOTOS}) — ${fotoUrls.length}/${MAX_FOTOS}`}>
           <input
             type="file"
             accept="image/*"
             multiple
-            disabled={fotoUrls.length >= 8}
+            disabled={fotoUrls.length >= MAX_FOTOS}
             onChange={handleFotosChange}
           />
         </Field>
+
+        <ProductsEditor products={products} onChange={setProducts} />
 
         {erro && <p className="text-sm text-[var(--color-accent-coral)]">{erro}</p>}
 

@@ -130,6 +130,7 @@ model Listing {
   atualizadoEm          DateTime      @updatedAt
 
   media                 Media[]
+  products              Product[]
   reviews               Review[]
 
   @@index([status])
@@ -167,6 +168,7 @@ model Professional {
   atualizadoEm     DateTime      @updatedAt
 
   media            Media[]
+  products         Product[]
   reviews          Review[]
 
   @@index([status])
@@ -182,6 +184,22 @@ model Media {
   tipo           MediaType
   url            String
   ordem          Int           @default(0)
+}
+
+model Product {
+  id             String        @id @default(cuid())
+  listingId      String?
+  listing        Listing?      @relation(fields: [listingId], references: [id])
+  professionalId String?
+  professional   Professional? @relation(fields: [professionalId], references: [id])
+  nome           String
+  descricao      String?
+  valor          String?
+  imagemUrl      String?
+  ordem          Int           @default(0)
+
+  @@index([listingId])
+  @@index([professionalId])
 }
 
 model Review {

@@ -12,6 +12,7 @@ const listingInclude = {
   subcategory: true,
   city: true,
   media: { orderBy: { ordem: "asc" as const } },
+  products: { orderBy: { ordem: "asc" as const } },
 } satisfies Prisma.ListingInclude;
 
 export async function GET(request: NextRequest) {
@@ -78,6 +79,13 @@ const mediaSchema = z.object({
   url: z.string().min(1),
 });
 
+const productSchema = z.object({
+  nome: z.string().min(1),
+  descricao: z.string().optional(),
+  valor: z.string().optional(),
+  imagemUrl: z.string().optional(),
+});
+
 const cnpjRegex = /^\d{14}$/;
 
 const createSchema = z.object({
@@ -108,6 +116,7 @@ const createSchema = z.object({
   entrega: z.boolean().optional(),
   atendimentoDomiciliar: z.boolean().optional(),
   media: z.array(mediaSchema).optional(),
+  products: z.array(productSchema).max(12).optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -122,7 +131,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { media, ...data } = parsed.data;
+  const { media, products, ...data } = parsed.data;
 
   const listing = await withUniquePublicId("EMP", (codigoPublico) =>
     prisma.listing.create({
@@ -132,8 +141,11 @@ export async function POST(request: NextRequest) {
         codigoPublico,
         ownerId: session.user.id,
         media: media?.length ? { create: media } : undefined,
+        products: products?.length
+          ? { create: products.map((p, i) => ({ ...p, ordem: i })) }
+          : undefined,
       },
-      include: { media: true, category: true, subcategory: true, city: true },
+      include: listingInclude,
     })
   );
 

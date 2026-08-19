@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import Link from "next/link";
 import type { Listing, Professional } from "@/types/catalog";
 
@@ -161,10 +161,25 @@ const STATUS_CLASSE: Record<Usuario["subscriptionStatus"], string> = {
   INCOMPLETE: "bg-yellow-100 text-yellow-700",
 };
 
+type ItemResumo = {
+  id: string;
+  codigoPublico: string;
+  nome: string;
+  status: "PENDENTE" | "APROVADO" | "REPROVADO" | "INATIVO";
+  category: { nome: string };
+  subcategory: { nome: string } | null;
+  city: { nome: string };
+};
+
+type ItensUsuario = { listings: ItemResumo[]; professionals: ItemResumo[] };
+
 function Usuarios() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [processando, setProcessando] = useState<string | null>(null);
+  const [expandido, setExpandido] = useState<string | null>(null);
+  const [itens, setItens] = useState<ItensUsuario | null>(null);
+  const [carregandoItens, setCarregandoItens] = useState(false);
 
   async function carregar() {
     setCarregando(true);
@@ -197,6 +212,20 @@ function Usuarios() {
     setProcessando(null);
   }
 
+  async function alternarCadastros(id: string) {
+    if (expandido === id) {
+      setExpandido(null);
+      setItens(null);
+      return;
+    }
+    setExpandido(id);
+    setItens(null);
+    setCarregandoItens(true);
+    const res = await fetch(`/api/v1/admin/users/${id}/items`);
+    if (res.ok) setItens(await res.json());
+    setCarregandoItens(false);
+  }
+
   return (
     <section className="mt-10">
       <div className="mb-3 flex items-center justify-between">
@@ -227,44 +256,86 @@ function Usuarios() {
             </thead>
             <tbody>
               {usuarios.map((u) => (
-                <tr key={u.id} className="border-t border-black/10">
-                  <td className="px-3 py-2">{u.nome}</td>
-                  <td className="px-3 py-2">{u.email}</td>
-                  <td className="px-3 py-2">{u.role}</td>
-                  <td className="px-3 py-2 whitespace-nowrap">
-                    {new Date(u.criadoEm).toLocaleDateString("pt-BR")}
-                  </td>
-                  <td className="px-3 py-2">
-                    <span className={`rounded px-2 py-1 text-xs font-medium ${STATUS_CLASSE[u.subscriptionStatus]}`}>
-                      {STATUS_LABEL[u.subscriptionStatus]}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2 whitespace-nowrap">
-                    {u.currentPeriodEnd ? new Date(u.currentPeriodEnd).toLocaleDateString("pt-BR") : "—"}
-                  </td>
-                  <td className="px-3 py-2">
-                    <div className="flex gap-2">
-                      {u.subscriptionStatus !== "ACTIVE" && (
-                        <button
-                          onClick={() => ativarAssinatura(u.id)}
-                          disabled={processando === u.id}
-                          className="rounded bg-primary px-3 py-1 text-xs font-medium text-white hover:bg-primary-hover disabled:opacity-50"
-                        >
-                          Ativar
-                        </button>
-                      )}
-                      {u.subscriptionStatus !== "NONE" && (
-                        <button
-                          onClick={() => desativarAssinatura(u.id)}
-                          disabled={processando === u.id}
-                          className="rounded border border-black/20 px-3 py-1 text-xs hover:bg-black/5 disabled:opacity-50"
-                        >
-                          Desativar
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
+                <Fragment key={u.id}>
+                  <tr className="border-t border-black/10">
+                    <td className="px-3 py-2">{u.nome}</td>
+                    <td className="px-3 py-2">{u.email}</td>
+                    <td className="px-3 py-2">{u.role}</td>
+                    <td className="px-3 py-2 whitespace-nowrap">
+                      {new Date(u.criadoEm).toLocaleDateString("pt-BR")}
+                    </td>
+                    <td className="px-3 py-2">
+                      <span className={`rounded px-2 py-1 text-xs font-medium ${STATUS_CLASSE[u.subscriptionStatus]}`}>
+                        {STATUS_LABEL[u.subscriptionStatus]}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 whitespace-nowrap">
+                      {u.currentPeriodEnd ? new Date(u.currentPeriodEnd).toLocaleDateString("pt-BR") : "—"}
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="flex flex-wrap gap-2">
+                        {u.subscriptionStatus !== "ACTIVE" && (
+                          <button
+                            onClick={() => ativarAssinatura(u.id)}
+                            disabled={processando === u.id}
+                            className="rounded bg-primary px-3 py-1 text-xs font-medium text-white hover:bg-primary-hover disabled:opacity-50"
+                          >
+                            Ativar
+                          </button>
+                        )}
+                        {u.subscriptionStatus !== "NONE" && (
+                          <button
+                            onClick={() => desativarAssinatura(u.id)}
+                            disabled={processando === u.id}
+                            className="rounded border border-black/20 px-3 py-1 text-xs hover:bg-black/5 disabled:opacity-50"
+                          >
+                            Desativar
+                          </button>
+                        )}
+                        {(u._count.listings > 0 || u._count.professionals > 0) && (
+                          <button
+                            onClick={() => alternarCadastros(u.id)}
+                            className="rounded border border-black/20 px-3 py-1 text-xs hover:bg-black/5"
+                          >
+                            {expandido === u.id ? "Ocultar cadastros" : `Ver cadastros (${u._count.listings + u._count.professionals})`}
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                  {expandido === u.id && (
+                    <tr className="border-t border-black/10 bg-black/[0.02]">
+                      <td colSpan={7} className="px-3 py-3">
+                        {carregandoItens && <p className="text-xs text-black/60">Carregando...</p>}
+                        {!carregandoItens && itens && (
+                          <div className="flex flex-col gap-2">
+                            {[...itens.listings.map((i) => ({ ...i, tipo: "listings" as const })), ...itens.professionals.map((i) => ({ ...i, tipo: "professionals" as const }))].map((item) => (
+                              <div
+                                key={`${item.tipo}-${item.id}`}
+                                className="flex flex-wrap items-center justify-between gap-2 rounded border border-black/10 bg-white px-3 py-2 text-xs"
+                              >
+                                <div>
+                                  <span className="font-semibold">{item.nome}</span>{" "}
+                                  <span className="text-black/50">
+                                    · {item.codigoPublico} · {item.category.nome}
+                                    {item.subcategory ? ` / ${item.subcategory.nome}` : ""} · {item.city.nome}
+                                  </span>{" "}
+                                  <span className="ml-1 rounded bg-black/10 px-1.5 py-0.5">{item.status}</span>
+                                </div>
+                                <Link
+                                  href={editarHref(item.tipo, item.id)}
+                                  className="rounded border border-black/20 px-2 py-1 hover:bg-black/5"
+                                >
+                                  Editar
+                                </Link>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
               ))}
             </tbody>
           </table>

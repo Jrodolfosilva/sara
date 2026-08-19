@@ -206,6 +206,44 @@ export function PerfilConteudo({ kind, item }: Props) {
         </div>
       )}
 
+      {item.products.length > 0 && (
+        <div className="mb-6">
+          <h4 className="mb-3 text-lg font-semibold">Produtos</h4>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {item.products.map((p) => (
+              <div
+                key={p.id}
+                className="flex gap-3 rounded-lg border p-3"
+                style={{ borderColor: "var(--color-border, #E2E8F0)" }}
+              >
+                <div
+                  className="h-16 w-16 shrink-0 overflow-hidden rounded"
+                  style={{ background: "var(--color-bg-light)" }}
+                >
+                  {p.imagemUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={p.imagemUrl} alt={p.nome} className="h-full w-full object-cover" />
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold">{p.nome}</p>
+                  {p.descricao && (
+                    <p className="line-clamp-2 text-xs" style={{ color: "var(--color-text-muted)" }}>
+                      {p.descricao}
+                    </p>
+                  )}
+                  {p.valor && (
+                    <p className="mt-1 text-sm font-semibold" style={{ color: "var(--color-primary-cyan)" }}>
+                      {p.valor}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {whatsapp && (
         <a
           href={whatsappLink(whatsapp)}

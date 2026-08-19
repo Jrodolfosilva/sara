@@ -19,6 +19,7 @@ export default async function EditarEmpresaPage({
       subcategory: true,
       city: true,
       media: { orderBy: { ordem: "asc" } },
+      products: { orderBy: { ordem: "asc" } },
     },
   });
 

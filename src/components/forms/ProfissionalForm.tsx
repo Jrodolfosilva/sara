@@ -5,7 +5,10 @@ import { useRouter } from "next/navigation";
 import { useCatalogData } from "@/lib/useCatalogData";
 import { uploadFile } from "@/lib/uploadFile";
 import { formatWhatsappBR, isWhatsappCompleto } from "@/lib/whatsappMask";
+import { ProductsEditor, productsToPayload, useProductsDraft } from "@/components/forms/ProductsEditor";
 import type { Professional } from "@/types/catalog";
+
+const MAX_FOTOS = 6;
 
 export function ProfissionalForm({
   mode,
@@ -22,7 +25,8 @@ export function ProfissionalForm({
   const [categoryId, setCategoryId] = useState(initialData?.category.id ?? "");
   const [subcategoryId, setSubcategoryId] = useState(initialData?.subcategory?.id ?? "");
   const [cityId, setCityId] = useState(initialData?.city.id ?? "");
-  const [fotoPerfilUrl, setFotoPerfilUrl] = useState<string | null>(initialData?.media[0]?.url ?? null);
+  const [fotoUrls, setFotoUrls] = useState<string[]>(initialData?.media.map((m) => m.url) ?? []);
+  const [products, setProducts] = useProductsDraft(initialData?.products);
   const [enviandoMidia, setEnviandoMidia] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
@@ -64,14 +68,15 @@ export function ProfissionalForm({
     }
   }
 
-  async function handleFotoChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  async function handleFotosChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []).slice(0, MAX_FOTOS - fotoUrls.length);
+    if (!files.length) return;
     setEnviandoMidia(true);
     try {
-      setFotoPerfilUrl(await uploadFile(file));
+      const urls = await Promise.all(files.map(uploadFile));
+      setFotoUrls((prev) => [...prev, ...urls]);
     } catch {
-      setErro("Falha ao enviar a foto.");
+      setErro("Falha ao enviar fotos.");
     } finally {
       setEnviandoMidia(false);
     }
@@ -99,8 +104,9 @@ export function ProfissionalForm({
             email: form.get("email") || undefined,
             instagram: form.get("instagram") || undefined,
             facebook: form.get("facebook") || undefined,
-            fotoPerfilUrl: fotoPerfilUrl || undefined,
+            fotoUrls,
             valorHora: form.get("valorHora") || undefined,
+            products: productsToPayload(products),
           }
         : {
             nome: form.get("nome"),
@@ -113,8 +119,9 @@ export function ProfissionalForm({
             email: form.get("email") || undefined,
             instagram: form.get("instagram") || undefined,
             facebook: form.get("facebook") || undefined,
-            fotoPerfilUrl: fotoPerfilUrl || undefined,
+            fotoUrls,
             valorHora: form.get("valorHora") || undefined,
+            products: productsToPayload(products),
           };
 
     const res = await fetch(
@@ -303,14 +310,17 @@ export function ProfissionalForm({
           </Field>
         </div>
 
-        <Field label="Foto de perfil">
-          <input type="file" accept="image/*" onChange={handleFotoChange} />
-          {fotoPerfilUrl && (
-            <p className="mt-1 text-xs font-semibold" style={{ color: "var(--color-primary-cyan)" }}>
-              Foto enviada.
-            </p>
-          )}
+        <Field label={`Galeria de fotos (até ${MAX_FOTOS}) — ${fotoUrls.length}/${MAX_FOTOS}`}>
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            disabled={fotoUrls.length >= MAX_FOTOS}
+            onChange={handleFotosChange}
+          />
         </Field>
+
+        <ProductsEditor products={products} onChange={setProducts} />
 
         {erro && <p className="text-sm text-[var(--color-accent-coral)]">{erro}</p>}
 

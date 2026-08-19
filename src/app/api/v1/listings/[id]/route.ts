@@ -18,6 +18,7 @@ export async function GET(
       subcategory: true,
       city: true,
       media: { orderBy: { ordem: "asc" } },
+      products: { orderBy: { ordem: "asc" } },
       owner: { select: { criadoEm: true, subscriptionStatus: true } },
     },
   });
@@ -42,6 +43,13 @@ export async function GET(
 const mediaSchema = z.object({
   tipo: z.enum(["FOTO", "LOGO", "VIDEO"]),
   url: z.string().min(1),
+});
+
+const productSchema = z.object({
+  nome: z.string().min(1),
+  descricao: z.string().optional(),
+  valor: z.string().optional(),
+  imagemUrl: z.string().optional(),
 });
 
 const cnpjRegex = /^\d{14}$/;
@@ -72,6 +80,7 @@ const updateSchema = z.object({
   entrega: z.boolean().optional(),
   atendimentoDomiciliar: z.boolean().optional(),
   media: z.array(mediaSchema).optional(),
+  products: z.array(productSchema).max(12).optional(),
 });
 
 export async function PATCH(
@@ -98,10 +107,13 @@ export async function PATCH(
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { media, ...data } = parsed.data;
+  const { media, products, ...data } = parsed.data;
 
   if (media) {
     await prisma.media.deleteMany({ where: { listingId: id } });
+  }
+  if (products) {
+    await prisma.product.deleteMany({ where: { listingId: id } });
   }
 
   const listing = await prisma.listing.update({
@@ -110,8 +122,17 @@ export async function PATCH(
       ...data,
       email: data.email || undefined,
       media: media?.length ? { create: media } : undefined,
+      products: products?.length
+        ? { create: products.map((p, i) => ({ ...p, ordem: i })) }
+        : undefined,
     },
-    include: { media: { orderBy: { ordem: "asc" } }, category: true, subcategory: true, city: true },
+    include: {
+      media: { orderBy: { ordem: "asc" } },
+      products: { orderBy: { ordem: "asc" } },
+      category: true,
+      subcategory: true,
+      city: true,
+    },
   });
 
   return NextResponse.json(listing);

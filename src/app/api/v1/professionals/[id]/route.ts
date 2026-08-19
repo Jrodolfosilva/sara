@@ -22,6 +22,7 @@ const publicSelect = {
   subcategory: true,
   city: true,
   media: { orderBy: { ordem: "asc" as const } },
+  products: { orderBy: { ordem: "asc" as const } },
 } satisfies Prisma.ProfessionalSelect;
 
 export async function GET(
@@ -56,6 +57,13 @@ export async function GET(
   return NextResponse.json(professional);
 }
 
+const productSchema = z.object({
+  nome: z.string().min(1),
+  descricao: z.string().optional(),
+  valor: z.string().optional(),
+  imagemUrl: z.string().optional(),
+});
+
 const updateSchema = z.object({
   nome: z.string().min(2),
   whatsapp: z.string().min(8),
@@ -67,8 +75,9 @@ const updateSchema = z.object({
   email: z.string().email().optional().or(z.literal("")),
   instagram: z.string().optional(),
   facebook: z.string().optional(),
-  fotoPerfilUrl: z.string().optional(),
+  fotoUrls: z.array(z.string()).max(6).optional(),
   valorHora: z.string().optional(),
+  products: z.array(productSchema).max(12).optional(),
 });
 
 export async function PATCH(
@@ -95,10 +104,13 @@ export async function PATCH(
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { fotoPerfilUrl, ...data } = parsed.data;
+  const { fotoUrls, products, ...data } = parsed.data;
 
-  if (fotoPerfilUrl) {
+  if (fotoUrls) {
     await prisma.media.deleteMany({ where: { professionalId: id } });
+  }
+  if (products) {
+    await prisma.product.deleteMany({ where: { professionalId: id } });
   }
 
   const professional = await prisma.professional.update({
@@ -106,7 +118,12 @@ export async function PATCH(
     data: {
       ...data,
       email: data.email || undefined,
-      media: fotoPerfilUrl ? { create: [{ tipo: "FOTO", url: fotoPerfilUrl, ordem: 0 }] } : undefined,
+      media: fotoUrls?.length
+        ? { create: fotoUrls.map((url, i) => ({ tipo: "FOTO" as const, url, ordem: i })) }
+        : undefined,
+      products: products?.length
+        ? { create: products.map((p, i) => ({ ...p, ordem: i })) }
+        : undefined,
     },
     select: publicSelect,
   });

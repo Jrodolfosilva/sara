@@ -10,6 +10,7 @@ const includeCompleto = {
   subcategory: true,
   city: true,
   media: { orderBy: { ordem: "asc" as const } },
+  products: { orderBy: { ordem: "asc" as const } },
   owner: { select: { criadoEm: true, subscriptionStatus: true } },
 };
 
