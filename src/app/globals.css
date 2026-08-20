@@ -348,6 +348,10 @@
   width: auto;
 }
 
+.search-field--category {
+  max-width: 200px;
+}
+
 /* --- Categories Section --- */
 .categories-section {
   padding: 72px 0;
@@ -810,8 +814,24 @@
     justify-content: center;
   }
 
-  .logo-img {
-    width: 20vw;
+  .navbar .logo-img {
+    width: 16vw;
+  }
+
+  .search-box {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-field,
+  .search-field--category {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .search-btn {
+    width: 100%;
   }
 
   .cards-grid {

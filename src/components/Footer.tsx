@@ -37,7 +37,8 @@ export function Footer() {
           <div className="footer-column">
             <h5>Contato</h5>
             <ul className="footer-links">
-              <li><a href="mailto:contato@buscapebas.com">contato@buscapebas.com</a></li>
+              <li><a href="mailto:buscapeba@gmail.com">buscapeba@gmail.com</a></li>
+              <li><a href="https://wa.me/5594992462747" target="_blank" rel="noopener noreferrer">WhatsApp: (94) 99246-2747</a></li>
               <li><Link href="/login">Entrar</Link></li>
             </ul>
           </div>

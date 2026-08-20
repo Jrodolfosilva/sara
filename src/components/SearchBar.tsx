@@ -79,7 +79,7 @@ export function SearchBar({
         )}
       </div>
 
-      <div className="search-field" style={{ maxWidth: 200 }}>
+      <div className="search-field search-field--category">
         <Grid3x3 size={20} />
         <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
           <option value="">Todas Categorias</option>
