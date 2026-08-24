@@ -37,7 +37,8 @@ export async function GET(
     select: {
       ownerId: true,
       status: true,
-      owner: { select: { criadoEm: true, subscriptionStatus: true } },
+      criadoEm: true,
+      subscriptionStatus: true,
     },
   });
   if (!meta) {
@@ -47,7 +48,7 @@ export async function GET(
   const isOwnerOrAdmin =
     !!session?.user && (session.user.id === meta.ownerId || session.user.role === "ADMIN");
 
-  const visivel = meta.status === "APROVADO" && passaGateAssinatura(meta.owner);
+  const visivel = meta.status === "APROVADO" && passaGateAssinatura(meta);
 
   if (!visivel && !isOwnerOrAdmin) {
     return NextResponse.json({ error: "Não encontrado" }, { status: 404 });

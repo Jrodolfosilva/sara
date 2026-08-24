@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { normalizeText } from "@/lib/text";
 import { withUniquePublicId } from "@/lib/publicId";
-import { gateAssinaturaOwner } from "@/lib/subscriptionGate";
+import { gateAssinaturaItem, semCamposAssinatura } from "@/lib/subscriptionGate";
 
 const listingInclude = {
   category: true,
@@ -24,13 +24,13 @@ export async function GET(request: NextRequest) {
   const page = Math.max(1, Number(params.get("page") ?? 1));
   const pageSize = Math.min(50, Math.max(1, Number(params.get("pageSize") ?? 20)));
 
-  const gateOwner = gateAssinaturaOwner();
+  const gate = gateAssinaturaItem();
   const where: Prisma.ListingWhereInput = {
     status: "APROVADO",
     ...(categoryId && { categoryId }),
     ...(subcategoryId && { subcategoryId }),
     ...(cityId && { cityId }),
-    ...(gateOwner && { owner: gateOwner }),
+    ...(gate ?? {}),
   };
 
   let items;
@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
   }
 
   return NextResponse.json({
-    items,
+    items: items.map(semCamposAssinatura),
     page,
     pageSize,
     total,
@@ -156,5 +156,5 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  return NextResponse.json(listing, { status: 201 });
+  return NextResponse.json(semCamposAssinatura(listing), { status: 201 });
 }

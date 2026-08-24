@@ -11,6 +11,9 @@ const listingSelect = {
   category: true,
   subcategory: true,
   city: true,
+  subscriptionStatus: true,
+  trialEndsAt: true,
+  currentPeriodEnd: true,
 } satisfies Prisma.ListingSelect;
 
 const professionalSelect = {
@@ -21,6 +24,9 @@ const professionalSelect = {
   category: true,
   subcategory: true,
   city: true,
+  subscriptionStatus: true,
+  trialEndsAt: true,
+  currentPeriodEnd: true,
 } satisfies Prisma.ProfessionalSelect;
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {

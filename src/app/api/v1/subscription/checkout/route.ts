@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { getStripe, ASSINATURA_PRECO_CENTAVOS, ASSINATURA_TRIAL_DIAS } from "@/lib/stripe";
+import { AssinaturaError, criarCheckoutNegocio } from "@/lib/subscriptionCheckout";
+
+const bodySchema = z.object({
+  tipo: z.enum(["listing", "professional"]),
+  id: z.string().min(1),
+});
 
 export async function POST(request: NextRequest) {
   const session = await auth();
@@ -9,54 +15,31 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   }
 
-  const user = await prisma.user.findUnique({ where: { id: session.user.id } });
-  if (!user) {
+  const parsed = bodySchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Negócio inválido" }, { status: 400 });
+  }
+  const { tipo, id } = parsed.data;
+
+  const item =
+    tipo === "listing"
+      ? await prisma.listing.findUnique({ where: { id }, select: { ownerId: true } })
+      : await prisma.professional.findUnique({ where: { id }, select: { ownerId: true } });
+
+  if (!item) {
     return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
   }
-
-  if (user.subscriptionStatus === "ACTIVE" || user.subscriptionStatus === "TRIALING") {
-    return NextResponse.json({ error: "Já existe uma assinatura ativa" }, { status: 400 });
+  if (item.ownerId !== session.user.id) {
+    return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
   }
 
-  const stripe = getStripe();
-  const origin = request.nextUrl.origin;
-
-  let stripeCustomerId = user.stripeCustomerId;
-  if (!stripeCustomerId) {
-    const customer = await stripe.customers.create({
-      email: user.email,
-      name: user.nome,
-      metadata: { userId: user.id },
-    });
-    stripeCustomerId = customer.id;
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { stripeCustomerId },
-    });
+  try {
+    const url = await criarCheckoutNegocio({ tipo, id, origin: request.nextUrl.origin });
+    return NextResponse.json({ url });
+  } catch (err) {
+    if (err instanceof AssinaturaError) {
+      return NextResponse.json({ error: err.message }, { status: err.status });
+    }
+    throw err;
   }
-
-  const checkoutSession = await stripe.checkout.sessions.create({
-    mode: "subscription",
-    customer: stripeCustomerId,
-    line_items: [
-      {
-        price_data: {
-          currency: "brl",
-          unit_amount: ASSINATURA_PRECO_CENTAVOS,
-          recurring: { interval: "month" },
-          product_data: { name: "Busca Pebas — Assinatura mensal" },
-        },
-        quantity: 1,
-      },
-    ],
-    subscription_data: {
-      trial_period_days: ASSINATURA_TRIAL_DIAS,
-      metadata: { userId: user.id },
-    },
-    metadata: { userId: user.id },
-    success_url: `${origin}/assinatura?status=sucesso`,
-    cancel_url: `${origin}/assinatura?status=cancelado`,
-  });
-
-  return NextResponse.json({ url: checkoutSession.url });
 }

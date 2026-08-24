@@ -6,7 +6,7 @@ import { auth } from "@/auth";
 import { encrypt, hashCpf } from "@/lib/crypto";
 import { normalizeText } from "@/lib/text";
 import { withUniquePublicId } from "@/lib/publicId";
-import { gateAssinaturaOwner } from "@/lib/subscriptionGate";
+import { gateAssinaturaItem } from "@/lib/subscriptionGate";
 
 const publicSelect = {
   id: true,
@@ -37,13 +37,13 @@ export async function GET(request: NextRequest) {
   const page = Math.max(1, Number(params.get("page") ?? 1));
   const pageSize = Math.min(50, Math.max(1, Number(params.get("pageSize") ?? 20)));
 
-  const gateOwner = gateAssinaturaOwner();
+  const gate = gateAssinaturaItem();
   const where: Prisma.ProfessionalWhereInput = {
     status: "APROVADO",
     ...(categoryId && { categoryId }),
     ...(subcategoryId && { subcategoryId }),
     ...(cityId && { cityId }),
-    ...(gateOwner && { owner: gateOwner }),
+    ...(gate ?? {}),
   };
 
   let items;

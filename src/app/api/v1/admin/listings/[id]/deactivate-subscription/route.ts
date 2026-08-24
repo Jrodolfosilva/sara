@@ -8,7 +8,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
 
   const { id } = await params;
 
-  const user = await prisma.user.update({
+  const listing = await prisma.listing.update({
     where: { id },
     data: {
       subscriptionStatus: "NONE",
@@ -16,5 +16,5 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     },
   });
 
-  return NextResponse.json({ user });
+  return NextResponse.json({ listing });
 }

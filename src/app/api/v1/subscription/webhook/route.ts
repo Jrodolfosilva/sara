@@ -15,28 +15,37 @@ const statusMap: Record<Stripe.Subscription.Status, "TRIALING" | "ACTIVE" | "PAS
 };
 
 async function syncSubscription(subscription: Stripe.Subscription) {
-  const userId = subscription.metadata?.userId;
-  const customerId =
-    typeof subscription.customer === "string" ? subscription.customer : subscription.customer.id;
-
-  const user = userId
-    ? await prisma.user.findUnique({ where: { id: userId } })
-    : await prisma.user.findUnique({ where: { stripeCustomerId: customerId } });
-
-  if (!user) return;
+  const tipo = subscription.metadata?.tipo;
+  const itemId = subscription.metadata?.itemId;
 
   const periodEndItem = subscription.items.data[0]?.current_period_end;
+  const data = {
+    stripeSubscriptionId: subscription.id,
+    subscriptionStatus: statusMap[subscription.status] ?? "NONE",
+    trialEndsAt: subscription.trial_end ? new Date(subscription.trial_end * 1000) : null,
+    currentPeriodEnd: periodEndItem ? new Date(periodEndItem * 1000) : null,
+  };
 
-  await prisma.user.update({
-    where: { id: user.id },
-    data: {
-      stripeCustomerId: customerId,
-      stripeSubscriptionId: subscription.id,
-      subscriptionStatus: statusMap[subscription.status] ?? "NONE",
-      trialEndsAt: subscription.trial_end ? new Date(subscription.trial_end * 1000) : null,
-      currentPeriodEnd: periodEndItem ? new Date(periodEndItem * 1000) : null,
-    },
-  });
+  if (tipo === "listing" && itemId) {
+    await prisma.listing.updateMany({ where: { id: itemId }, data });
+    return;
+  }
+  if (tipo === "professional" && itemId) {
+    await prisma.professional.updateMany({ where: { id: itemId }, data });
+    return;
+  }
+
+  // Fallback pra eventos sem metadata (ex: assinatura editada direto no Stripe):
+  // acha o negócio pelo id da assinatura, em qualquer uma das duas tabelas.
+  const listing = await prisma.listing.findUnique({ where: { stripeSubscriptionId: subscription.id } });
+  if (listing) {
+    await prisma.listing.update({ where: { id: listing.id }, data });
+    return;
+  }
+  const professional = await prisma.professional.findUnique({ where: { stripeSubscriptionId: subscription.id } });
+  if (professional) {
+    await prisma.professional.update({ where: { id: professional.id }, data });
+  }
 }
 
 export async function POST(request: NextRequest) {

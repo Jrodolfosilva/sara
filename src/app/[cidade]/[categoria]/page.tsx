@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { passaGateAssinatura } from "@/lib/subscriptionGate";
+import { passaGateAssinatura, semCamposAssinatura } from "@/lib/subscriptionGate";
 import { PerfilConteudo } from "@/components/PerfilConteudo";
 import { categoryCoverClass } from "@/components/CategoryIcon";
 
@@ -11,7 +11,6 @@ const includeCompleto = {
   city: true,
   media: { orderBy: { ordem: "asc" as const } },
   products: { orderBy: { ordem: "asc" as const } },
-  owner: { select: { criadoEm: true, subscriptionStatus: true } },
 };
 
 async function buscarItem(id: string) {
@@ -20,8 +19,8 @@ async function buscarItem(id: string) {
     include: includeCompleto,
   });
   if (listing) {
-    if (!passaGateAssinatura(listing.owner)) return null;
-    return { kind: "empresa" as const, item: listing };
+    if (!passaGateAssinatura(listing)) return null;
+    return { kind: "empresa" as const, item: semCamposAssinatura(listing) };
   }
 
   const professional = await prisma.professional.findFirst({
@@ -29,8 +28,8 @@ async function buscarItem(id: string) {
     include: includeCompleto,
   });
   if (professional) {
-    if (!passaGateAssinatura(professional.owner)) return null;
-    return { kind: "profissional" as const, item: professional };
+    if (!passaGateAssinatura(professional)) return null;
+    return { kind: "profissional" as const, item: semCamposAssinatura(professional) };
   }
 
   return null;

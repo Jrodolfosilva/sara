@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { SearchBar } from "@/components/SearchBar";
 import { ResultCard } from "@/components/ResultCard";
 import { CategoryIcon } from "@/components/CategoryIcon";
-import { gateAssinaturaOwner } from "@/lib/subscriptionGate";
+import { gateAssinaturaItem, semCamposAssinatura } from "@/lib/subscriptionGate";
 
 export const dynamic = "force-dynamic";
 
@@ -18,8 +18,8 @@ const includeCompleto = {
 export default async function Home() {
   const categories = await prisma.category.findMany({ orderBy: { nome: "asc" } });
 
-  const gateOwner = gateAssinaturaOwner();
-  const where = { status: "APROVADO" as const, ...(gateOwner && { owner: gateOwner }) };
+  const gate = gateAssinaturaItem();
+  const where = { status: "APROVADO" as const, ...(gate ?? {}) };
 
   const [listingRows, professionalRows] = await Promise.all([
     prisma.listing.findMany({ where, orderBy: { criadoEm: "desc" }, take: 6, include: includeCompleto }),
@@ -27,11 +27,17 @@ export default async function Home() {
   ]);
 
   const destaques = [
-    ...listingRows.map((l) => ({ kind: "empresa" as const, item: { ...l, criadoEm: l.criadoEm.toISOString() } })),
-    ...professionalRows.map((p) => ({
-      kind: "profissional" as const,
-      item: { ...p, criadoEm: p.criadoEm.toISOString() },
-    })),
+    ...listingRows.map((l) => {
+      const semAssinatura = semCamposAssinatura(l);
+      return { kind: "empresa" as const, item: { ...semAssinatura, criadoEm: semAssinatura.criadoEm.toISOString() } };
+    }),
+    ...professionalRows.map((p) => {
+      const semAssinatura = semCamposAssinatura(p);
+      return {
+        kind: "profissional" as const,
+        item: { ...semAssinatura, criadoEm: semAssinatura.criadoEm.toISOString() },
+      };
+    }),
   ]
     .sort((a, b) => (a.item.criadoEm < b.item.criadoEm ? 1 : -1))
     .slice(0, 6);

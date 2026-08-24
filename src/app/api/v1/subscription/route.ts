@@ -8,18 +8,24 @@ export async function GET() {
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: {
-      subscriptionStatus: true,
-      trialEndsAt: true,
-      currentPeriodEnd: true,
-    },
-  });
+  const select = {
+    id: true,
+    nome: true,
+    codigoPublico: true,
+    subscriptionStatus: true,
+    trialEndsAt: true,
+    currentPeriodEnd: true,
+  } as const;
 
-  if (!user) {
-    return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
-  }
+  const [listings, professionals] = await Promise.all([
+    prisma.listing.findMany({ where: { ownerId: session.user.id }, select, orderBy: { criadoEm: "asc" } }),
+    prisma.professional.findMany({ where: { ownerId: session.user.id }, select, orderBy: { criadoEm: "asc" } }),
+  ]);
 
-  return NextResponse.json(user);
+  const negocios = [
+    ...listings.map((l) => ({ ...l, tipo: "listing" as const })),
+    ...professionals.map((p) => ({ ...p, tipo: "professional" as const })),
+  ];
+
+  return NextResponse.json({ negocios });
 }

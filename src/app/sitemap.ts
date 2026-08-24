@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
-import { gateAssinaturaOwner } from "@/lib/subscriptionGate";
+import { gateAssinaturaItem } from "@/lib/subscriptionGate";
 
 // Gerado por request, não no build: precisa refletir listagens aprovadas
 // (mudam o tempo todo) e o banco não está acessível durante `docker build`.
@@ -9,10 +9,10 @@ export const dynamic = "force-dynamic";
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
 
-  const gateOwner = gateAssinaturaOwner();
+  const gate = gateAssinaturaItem();
   const [listings, professionals] = await Promise.all([
     prisma.listing.findMany({
-      where: { status: "APROVADO", ...(gateOwner && { owner: gateOwner }) },
+      where: { status: "APROVADO", ...(gate ?? {}) },
       select: {
         id: true,
         atualizadoEm: true,
@@ -22,7 +22,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       },
     }),
     prisma.professional.findMany({
-      where: { status: "APROVADO", ...(gateOwner && { owner: gateOwner }) },
+      where: { status: "APROVADO", ...(gate ?? {}) },
       select: {
         id: true,
         atualizadoEm: true,

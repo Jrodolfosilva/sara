@@ -14,10 +14,6 @@ export async function GET() {
       email: true,
       role: true,
       criadoEm: true,
-      subscriptionStatus: true,
-      trialEndsAt: true,
-      currentPeriodEnd: true,
-      stripeCustomerId: true,
       _count: { select: { listings: true, professionals: true } },
     },
   });

@@ -11,7 +11,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   const periodoEmDias = 30;
   const currentPeriodEnd = new Date(Date.now() + periodoEmDias * 24 * 60 * 60 * 1000);
 
-  const user = await prisma.user.update({
+  const professional = await prisma.professional.update({
     where: { id },
     data: {
       subscriptionStatus: "ACTIVE",
@@ -19,5 +19,5 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     },
   });
 
-  return NextResponse.json({ user });
+  return NextResponse.json({ professional });
 }

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
-import { passaGateAssinatura } from "@/lib/subscriptionGate";
+import { passaGateAssinatura, semCamposAssinatura } from "@/lib/subscriptionGate";
 
 export async function GET(
   _request: NextRequest,
@@ -19,7 +19,6 @@ export async function GET(
       city: true,
       media: { orderBy: { ordem: "asc" } },
       products: { orderBy: { ordem: "asc" } },
-      owner: { select: { criadoEm: true, subscriptionStatus: true } },
     },
   });
 
@@ -30,14 +29,13 @@ export async function GET(
   const isOwnerOrAdmin =
     !!session?.user && (session.user.id === listing.ownerId || session.user.role === "ADMIN");
 
-  const visivel = listing.status === "APROVADO" && passaGateAssinatura(listing.owner);
+  const visivel = listing.status === "APROVADO" && passaGateAssinatura(listing);
 
   if (!visivel && !isOwnerOrAdmin) {
     return NextResponse.json({ error: "Não encontrado" }, { status: 404 });
   }
 
-  const { owner: _owner, ...listingSemOwner } = listing;
-  return NextResponse.json(listingSemOwner);
+  return NextResponse.json(semCamposAssinatura(listing));
 }
 
 const mediaSchema = z.object({
@@ -135,5 +133,5 @@ export async function PATCH(
     },
   });
 
-  return NextResponse.json(listing);
+  return NextResponse.json(semCamposAssinatura(listing));
 }

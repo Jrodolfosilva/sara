@@ -17,10 +17,6 @@ type Usuario = {
   email: string;
   role: "USER" | "OWNER" | "ADMIN";
   criadoEm: string;
-  subscriptionStatus: "NONE" | "TRIALING" | "ACTIVE" | "PAST_DUE" | "CANCELED" | "INCOMPLETE";
-  trialEndsAt: string | null;
-  currentPeriodEnd: string | null;
-  stripeCustomerId: string | null;
   _count: { listings: number; professionals: number };
 };
 
@@ -143,7 +139,7 @@ export default function AdminPage() {
   );
 }
 
-const STATUS_LABEL: Record<Usuario["subscriptionStatus"], string> = {
+const STATUS_LABEL: Record<StatusAssinatura, string> = {
   NONE: "Sem assinatura",
   TRIALING: "Em teste",
   ACTIVE: "Ativa",
@@ -152,7 +148,7 @@ const STATUS_LABEL: Record<Usuario["subscriptionStatus"], string> = {
   INCOMPLETE: "Incompleta",
 };
 
-const STATUS_CLASSE: Record<Usuario["subscriptionStatus"], string> = {
+const STATUS_CLASSE: Record<StatusAssinatura, string> = {
   NONE: "bg-black/10 text-black/60",
   TRIALING: "bg-blue-100 text-blue-700",
   ACTIVE: "bg-green-100 text-green-700",
@@ -160,6 +156,8 @@ const STATUS_CLASSE: Record<Usuario["subscriptionStatus"], string> = {
   CANCELED: "bg-red-100 text-red-700",
   INCOMPLETE: "bg-yellow-100 text-yellow-700",
 };
+
+type StatusAssinatura = "NONE" | "TRIALING" | "ACTIVE" | "PAST_DUE" | "CANCELED" | "INCOMPLETE";
 
 type ItemResumo = {
   id: string;
@@ -169,6 +167,9 @@ type ItemResumo = {
   category: { nome: string };
   subcategory: { nome: string } | null;
   city: { nome: string };
+  subscriptionStatus: StatusAssinatura;
+  trialEndsAt: string | null;
+  currentPeriodEnd: string | null;
 };
 
 type ItensUsuario = { listings: ItemResumo[]; professionals: ItemResumo[] };
@@ -196,22 +197,6 @@ function Usuarios() {
     carregar();
   }, []);
 
-  async function ativarAssinatura(id: string) {
-    if (!window.confirm("Ativar assinatura manualmente para este usuário por 30 dias?")) return;
-    setProcessando(id);
-    await fetch(`/api/v1/admin/users/${id}/activate-subscription`, { method: "POST" });
-    await carregar();
-    setProcessando(null);
-  }
-
-  async function desativarAssinatura(id: string) {
-    if (!window.confirm("Desativar a assinatura deste usuário?")) return;
-    setProcessando(id);
-    await fetch(`/api/v1/admin/users/${id}/deactivate-subscription`, { method: "POST" });
-    await carregar();
-    setProcessando(null);
-  }
-
   async function alternarCadastros(id: string) {
     if (expandido === id) {
       setExpandido(null);
@@ -224,6 +209,39 @@ function Usuarios() {
     const res = await fetch(`/api/v1/admin/users/${id}/items`);
     if (res.ok) setItens(await res.json());
     setCarregandoItens(false);
+  }
+
+  async function recarregarItens(userId: string) {
+    const res = await fetch(`/api/v1/admin/users/${userId}/items`);
+    if (res.ok) setItens(await res.json());
+  }
+
+  async function ativarAssinaturaItem(tipo: "listings" | "professionals", id: string, userId: string) {
+    if (!window.confirm("Ativar assinatura manualmente para este negócio por 30 dias?")) return;
+    setProcessando(id);
+    await fetch(`/api/v1/admin/${tipo}/${id}/activate-subscription`, { method: "POST" });
+    await recarregarItens(userId);
+    setProcessando(null);
+  }
+
+  async function desativarAssinaturaItem(tipo: "listings" | "professionals", id: string, userId: string) {
+    if (!window.confirm("Desativar a assinatura deste negócio?")) return;
+    setProcessando(id);
+    await fetch(`/api/v1/admin/${tipo}/${id}/deactivate-subscription`, { method: "POST" });
+    await recarregarItens(userId);
+    setProcessando(null);
+  }
+
+  async function gerarLinkPagamento(tipo: "listings" | "professionals", id: string) {
+    setProcessando(id);
+    const res = await fetch(`/api/v1/admin/${tipo}/${id}/payment-link`, { method: "POST" });
+    const data = await res.json();
+    setProcessando(null);
+    if (!res.ok) {
+      window.alert(data.error ?? "Não foi possível gerar o link de pagamento.");
+      return;
+    }
+    window.prompt("Link de pagamento (Ctrl+C pra copiar):", data.url);
   }
 
   return (
@@ -249,8 +267,6 @@ function Usuarios() {
                 <th className="px-3 py-2">Email</th>
                 <th className="px-3 py-2">Papel</th>
                 <th className="px-3 py-2">Cadastrado em</th>
-                <th className="px-3 py-2">Assinatura</th>
-                <th className="px-3 py-2">Válida até</th>
                 <th className="px-3 py-2">Ações</th>
               </tr>
             </thead>
@@ -265,33 +281,7 @@ function Usuarios() {
                       {new Date(u.criadoEm).toLocaleDateString("pt-BR")}
                     </td>
                     <td className="px-3 py-2">
-                      <span className={`rounded px-2 py-1 text-xs font-medium ${STATUS_CLASSE[u.subscriptionStatus]}`}>
-                        {STATUS_LABEL[u.subscriptionStatus]}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2 whitespace-nowrap">
-                      {u.currentPeriodEnd ? new Date(u.currentPeriodEnd).toLocaleDateString("pt-BR") : "—"}
-                    </td>
-                    <td className="px-3 py-2">
                       <div className="flex flex-wrap gap-2">
-                        {u.subscriptionStatus !== "ACTIVE" && (
-                          <button
-                            onClick={() => ativarAssinatura(u.id)}
-                            disabled={processando === u.id}
-                            className="rounded bg-primary px-3 py-1 text-xs font-medium text-white hover:bg-primary-hover disabled:opacity-50"
-                          >
-                            Ativar
-                          </button>
-                        )}
-                        {u.subscriptionStatus !== "NONE" && (
-                          <button
-                            onClick={() => desativarAssinatura(u.id)}
-                            disabled={processando === u.id}
-                            className="rounded border border-black/20 px-3 py-1 text-xs hover:bg-black/5 disabled:opacity-50"
-                          >
-                            Desativar
-                          </button>
-                        )}
                         {(u._count.listings > 0 || u._count.professionals > 0) && (
                           <button
                             onClick={() => alternarCadastros(u.id)}
@@ -305,29 +295,70 @@ function Usuarios() {
                   </tr>
                   {expandido === u.id && (
                     <tr className="border-t border-black/10 bg-black/[0.02]">
-                      <td colSpan={7} className="px-3 py-3">
+                      <td colSpan={5} className="px-3 py-3">
                         {carregandoItens && <p className="text-xs text-black/60">Carregando...</p>}
                         {!carregandoItens && itens && (
                           <div className="flex flex-col gap-2">
                             {[...itens.listings.map((i) => ({ ...i, tipo: "listings" as const })), ...itens.professionals.map((i) => ({ ...i, tipo: "professionals" as const }))].map((item) => (
                               <div
                                 key={`${item.tipo}-${item.id}`}
-                                className="flex flex-wrap items-center justify-between gap-2 rounded border border-black/10 bg-white px-3 py-2 text-xs"
+                                className="flex flex-col gap-2 rounded border border-black/10 bg-white px-3 py-2 text-xs"
                               >
-                                <div>
-                                  <span className="font-semibold">{item.nome}</span>{" "}
-                                  <span className="text-black/50">
-                                    · {item.codigoPublico} · {item.category.nome}
-                                    {item.subcategory ? ` / ${item.subcategory.nome}` : ""} · {item.city.nome}
-                                  </span>{" "}
-                                  <span className="ml-1 rounded bg-black/10 px-1.5 py-0.5">{item.status}</span>
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <div>
+                                    <span className="font-semibold">{item.nome}</span>{" "}
+                                    <span className="text-black/50">
+                                      · {item.codigoPublico} · {item.category.nome}
+                                      {item.subcategory ? ` / ${item.subcategory.nome}` : ""} · {item.city.nome}
+                                    </span>{" "}
+                                    <span className="ml-1 rounded bg-black/10 px-1.5 py-0.5">{item.status}</span>
+                                  </div>
+                                  <Link
+                                    href={editarHref(item.tipo, item.id)}
+                                    className="rounded border border-black/20 px-2 py-1 hover:bg-black/5"
+                                  >
+                                    Editar
+                                  </Link>
                                 </div>
-                                <Link
-                                  href={editarHref(item.tipo, item.id)}
-                                  className="rounded border border-black/20 px-2 py-1 hover:bg-black/5"
-                                >
-                                  Editar
-                                </Link>
+
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className={`rounded px-2 py-1 font-medium ${STATUS_CLASSE[item.subscriptionStatus]}`}>
+                                    {STATUS_LABEL[item.subscriptionStatus]}
+                                  </span>
+                                  {item.currentPeriodEnd && (
+                                    <span className="text-black/50">
+                                      válida até {new Date(item.currentPeriodEnd).toLocaleDateString("pt-BR")}
+                                    </span>
+                                  )}
+
+                                  {item.subscriptionStatus !== "ACTIVE" && (
+                                    <button
+                                      onClick={() => ativarAssinaturaItem(item.tipo, item.id, u.id)}
+                                      disabled={processando === item.id}
+                                      className="rounded bg-primary px-2 py-1 font-medium text-white hover:bg-primary-hover disabled:opacity-50"
+                                    >
+                                      Ativar
+                                    </button>
+                                  )}
+                                  {item.subscriptionStatus !== "NONE" && (
+                                    <button
+                                      onClick={() => desativarAssinaturaItem(item.tipo, item.id, u.id)}
+                                      disabled={processando === item.id}
+                                      className="rounded border border-black/20 px-2 py-1 hover:bg-black/5 disabled:opacity-50"
+                                    >
+                                      Desativar
+                                    </button>
+                                  )}
+                                  {(item.subscriptionStatus === "NONE" || item.subscriptionStatus === "CANCELED") && (
+                                    <button
+                                      onClick={() => gerarLinkPagamento(item.tipo, item.id)}
+                                      disabled={processando === item.id}
+                                      className="rounded border border-black/20 px-2 py-1 hover:bg-black/5 disabled:opacity-50"
+                                    >
+                                      Gerar link de pagamento
+                                    </button>
+                                  )}
+                                </div>
                               </div>
                             ))}
                           </div>

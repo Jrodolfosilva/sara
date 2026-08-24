@@ -82,10 +82,6 @@ model User {
   reviews              Review[]
 
   stripeCustomerId     String?             @unique
-  stripeSubscriptionId String?             @unique
-  subscriptionStatus   SubscriptionStatus  @default(NONE)
-  trialEndsAt          DateTime?
-  currentPeriodEnd     DateTime?
 }
 
 model Listing {
@@ -126,6 +122,11 @@ model Listing {
 
   horario               String?
 
+  stripeSubscriptionId  String?             @unique
+  subscriptionStatus    SubscriptionStatus  @default(NONE)
+  trialEndsAt           DateTime?
+  currentPeriodEnd      DateTime?
+
   criadoEm              DateTime      @default(now())
   atualizadoEm          DateTime      @updatedAt
 
@@ -163,6 +164,11 @@ model Professional {
 
   status           ListingStatus @default(PENDENTE)
   motivoReprovacao String?
+
+  stripeSubscriptionId String?            @unique
+  subscriptionStatus   SubscriptionStatus @default(NONE)
+  trialEndsAt          DateTime?
+  currentPeriodEnd     DateTime?
 
   criadoEm         DateTime      @default(now())
   atualizadoEm     DateTime      @updatedAt
