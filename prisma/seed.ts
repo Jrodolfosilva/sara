@@ -60,14 +60,14 @@ async function main() {
 
   await prisma.city.upsert({
     where: { nome_uf: { nome: "Canaã dos Carajás", uf: "PA" } },
-    update: { slug: slugify("Canaã dos Carajás") },
-    create: { nome: "Canaã dos Carajás", uf: "PA", ativa: false, slug: slugify("Canaã dos Carajás") },
+    update: { ativa: true, slug: slugify("Canaã dos Carajás") },
+    create: { nome: "Canaã dos Carajás", uf: "PA", ativa: true, slug: slugify("Canaã dos Carajás") },
   });
 
   await prisma.city.upsert({
     where: { nome_uf: { nome: "Marabá", uf: "PA" } },
-    update: { slug: slugify("Marabá") },
-    create: { nome: "Marabá", uf: "PA", ativa: false, slug: slugify("Marabá") },
+    update: { ativa: true, slug: slugify("Marabá") },
+    create: { nome: "Marabá", uf: "PA", ativa: true, slug: slugify("Marabá") },
   });
 
   for (const cat of categorias) {

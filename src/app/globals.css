@@ -1,10 +1,10 @@
 @import "tailwindcss";
 
 :root {
-  --color-primary-dark: #00426a; /* Azul Escuro Profundo */
-  --color-primary-cyan: #59bec9; /* Turquesa / Ciano */
-  --color-accent-coral: #e44b55; /* Coral Vívido */
-  --color-bg-light: #dde5ed; /* Azul Gelo Claro */
+  --color-primary-dark: #2a72a4; /* Azul Principal */
+  --color-primary-cyan: #f97279; /* Coral (usado como cor de destaque/hover) */
+  --color-accent-coral: #f97279; /* Coral Vívido */
+  --color-bg-light: #c6d8e6; /* Azul Gelo Claro */
   --color-surface-white: #ffffff;
   --color-text-main: #1e293b;
   --color-text-muted: #64748b;
@@ -12,16 +12,16 @@
   --background: #f8fafc;
   --foreground: var(--color-text-main);
   --primary: var(--color-primary-dark);
-  --primary-hover: #002842;
+  --primary-hover: #225b83;
 
   --radius-sm: 8px;
   --radius-md: 16px;
   --radius-lg: 24px;
   --radius-full: 9999px;
 
-  --shadow-sm: 0 2px 4px rgba(0, 66, 106, 0.05);
-  --shadow-md: 0 10px 25px rgba(0, 66, 106, 0.08);
-  --shadow-lg: 0 20px 40px rgba(0, 66, 106, 0.12);
+  --shadow-sm: 0 2px 4px rgba(42, 114, 164, 0.05);
+  --shadow-md: 0 10px 25px rgba(42, 114, 164, 0.08);
+  --shadow-lg: 0 20px 40px rgba(42, 114, 164, 0.12);
 }
 
 @theme inline {
@@ -135,15 +135,15 @@
 }
 
 .btn-accent:hover:not(:disabled) {
-  background-color: #d33c46;
+  background-color: #c75b61;
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(228, 75, 85, 0.3);
+  box-shadow: 0 6px 16px rgba(249, 114, 121, 0.3);
 }
 
 /* --- Navbar --- */
 .navbar {
   background-color: var(--color-surface-white);
-  border-bottom: 1px solid rgba(0, 66, 106, 0.08);
+  border-bottom: 1px solid rgba(42, 114, 164, 0.08);
   position: sticky;
   top: 0;
   z-index: 1000;
@@ -186,7 +186,7 @@
 }
 
 .logo-img {
-  width: 61px;
+  width: 210px;
   height: auto;
 }
 
@@ -232,7 +232,7 @@
 /* --- Hero Section --- */
 .hero {
   position: relative;
-  background: linear-gradient(135deg, rgba(0, 66, 106, 0.92) 0%, rgba(89, 190, 201, 0.85) 100%),
+  background: linear-gradient(135deg, rgba(42, 114, 164, 0.92) 0%, rgba(42, 114, 164, 0.75) 100%),
     url("/hero.jpg") center/cover no-repeat;
   padding: 100px 0 140px 0;
   color: var(--color-surface-white);
@@ -260,7 +260,7 @@
 .busca-hero {
   position: relative;
   height: 200px;
-  background: linear-gradient(135deg, rgba(0, 66, 106, 0.92) 0%, rgba(89, 190, 201, 0.85) 100%),
+  background: linear-gradient(135deg, rgba(42, 114, 164, 0.92) 0%, rgba(42, 114, 164, 0.75) 100%),
     url("/hero.jpg") center 20%/cover no-repeat;
   overflow: hidden;
 }
@@ -372,7 +372,7 @@
   padding: 28px 12px;
   border-radius: var(--radius-md);
   background: var(--color-surface-white);
-  border: 1px solid rgba(0, 66, 106, 0.12);
+  border: 1px solid rgba(42, 114, 164, 0.12);
   color: var(--color-text-main);
   font-weight: 600;
   font-size: 18px;
@@ -440,21 +440,21 @@
   transition: all 0.3s ease;
   display: flex;
   flex-direction: column;
-  border: 1px solid rgba(0, 66, 106, 0.08);
+  border: 1px solid rgba(42, 114, 164, 0.08);
 }
 
 .surface {
   background: var(--color-surface-white);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
-  border: 1px solid rgba(0, 66, 106, 0.08);
+  border: 1px solid rgba(42, 114, 164, 0.08);
 }
 
 .card {
   display: block;
   background: var(--color-surface-white);
   border-radius: var(--radius-lg);
-  border: 1px solid rgba(0, 66, 106, 0.12);
+  border: 1px solid rgba(42, 114, 164, 0.12);
   box-shadow: var(--shadow-sm);
   transition: all 0.2s ease;
 }
@@ -465,7 +465,7 @@
   padding: 6px 12px;
   border-radius: var(--radius-full);
   font-weight: 600;
-  border: 1px solid rgba(0, 66, 106, 0.15);
+  border: 1px solid rgba(42, 114, 164, 0.15);
 }
 
 .card:hover {
@@ -598,7 +598,7 @@
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 66, 106, 0.6);
+  background: rgba(42, 114, 164, 0.6);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
@@ -790,7 +790,7 @@
     flex-direction: column;
     gap: 4px;
     padding: 8px 20px 20px 20px;
-    border-top: 1px solid rgba(0, 66, 106, 0.08);
+    border-top: 1px solid rgba(42, 114, 164, 0.08);
     background-color: var(--color-surface-white);
   }
 
@@ -799,7 +799,7 @@
     font-weight: 500;
     font-size: 15px;
     color: var(--color-text-main);
-    border-bottom: 1px solid rgba(0, 66, 106, 0.06);
+    border-bottom: 1px solid rgba(42, 114, 164, 0.06);
   }
 
   .nav-mobile-actions {
